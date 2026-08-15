@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mapa Mental - Unidad Didáctica y Contenidos</title>
+<style>
+    :root {
+        --bg-color: #0f172a;
+        --card-bg: #1e293b;
+        --card-bg-2: #263349;
+        --accent-m1: #38bdf8;
+        --accent-m2: #818cf8;
+        --accent-m3: #2dd4bf;
+        --accent-warn: #fbbf24;
+        --accent-tech: #34d399;
+        --accent-mining: #f97316;
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+        --border-color: #334155;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-main);
+        padding: 24px;
+    }
+
+    .header { text-align: center; max-width: 900px; margin: 0 auto 20px; }
+
+    .header h1 {
+        font-size: 1.8rem;
+        color: var(--accent-m1);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 6px;
+    }
+
+    .header p { color: var(--text-muted); font-size: 0.95rem; }
+
+    .toolbar {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        align-items: center;
+        flex-wrap: wrap;
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 30px;
+        padding: 10px 22px;
+        max-width: 1200px;
+        margin: 0 auto 24px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .legend { display: flex; gap: 16px; flex-wrap: wrap; }
+
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 600; }
+
+    .legend-dot { width: 12px; height: 12px; border-radius: 4px; }
+    .dot-m1 { background-color: var(--accent-m1); }
+    .dot-m2 { background-color: var(--accent-m2); }
+    .dot-m3 { background-color: var(--accent-m3); }
+    .dot-warn { background-color: var(--accent-warn); border-radius: 50%; }
+    .dot-tech { background-color: var(--accent-tech); border-radius: 50%; }
+
+    .toolbar button {
+        background-color: var(--card-bg-2);
+        color: var(--text-main);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 6px 16px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: 0.15s;
+    }
+    .toolbar button:hover { border-color: var(--accent-m1); color: var(--accent-m1); }
+
+    .export-wrap { position: relative; }
+
+    .export-menu {
+        display: none;
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        z-index: 20;
+        flex-direction: column;
+        gap: 4px;
+        background-color: var(--card-bg-2);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 6px;
+        min-width: 170px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    }
+    .export-menu.open { display: flex; }
+    .export-menu button {
+        background-color: transparent;
+        color: var(--text-main);
+        border: none;
+        border-radius: 6px;
+        padding: 8px 10px;
+        font-size: 0.8rem;
+        text-align: left;
+        cursor: pointer;
+    }
+    .export-menu button:hover { background-color: var(--card-bg); color: var(--accent-m1); }
+    .export-menu button:disabled { opacity: 0.5; cursor: wait; }
+
+    .hint { font-size: 0.75rem; color: var(--text-muted); }
+
+    .map-wrap {
+        max-width: 1500px;
+        margin: 0 auto;
+        overflow-x: auto;
+        padding-bottom: 40px;
+    }
+
+    #map {
+        position: relative;
+        min-width: 1500px;
+    }
+
+    #map svg { position: absolute; top: 0; left: 0; pointer-events: none; }
+
+    .node {
+        position: absolute;
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+        padding: 10px 14px;
+        font-size: 0.82rem;
+        line-height: 1.3;
+        transition: transform 0.15s, box-shadow 0.15s, background-color 0.15s, border-color 0.15s;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.35);
+    }
+
+    .node-root {
+        background: linear-gradient(135deg, #1e293b, #0c1a2e);
+        border: 2px solid var(--accent-m1);
+        color: var(--text-main);
+        font-weight: 700;
+        font-size: 0.95rem;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: default;
+    }
+
+    .node-module, .node-leaf {
+        cursor: pointer;
+        user-select: none;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .node-module:hover, .node-leaf:hover { transform: translateY(-2px); }
+
+    .node-module {
+        background-color: var(--card-bg);
+        font-weight: 700;
+    }
+
+    .module-badge {
+        flex-shrink: 0;
+        width: 26px; height: 26px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .toggle-arrow {
+        margin-left: auto;
+        flex-shrink: 0;
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        transition: transform 0.2s;
+    }
+    .toggle-arrow.collapsed { transform: rotate(-90deg); }
+
+    .module-count {
+        font-size: 0.68rem;
+        font-weight: 400;
+        color: var(--text-muted);
+    }
+
+    .node-leaf {
+        background-color: var(--card-bg-2);
+        color: #e2e8f0;
+    }
+    .node-leaf .leaf-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .node-leaf.expanded { box-shadow: 0 0 0 2px var(--leaf-accent, var(--accent-m1)), 0 4px 10px rgba(0,0,0,0.4); }
+
+    .node-leaf.prereq-highlight {
+        background-color: #241d0a;
+        border-color: var(--accent-warn);
+        box-shadow: 0 0 0 2px var(--accent-warn), 0 0 14px rgba(251,191,36,0.45);
+    }
+    .node-leaf.prereq-highlight .leaf-dot { background-color: var(--accent-warn) !important; }
+    .prereq-tag {
+        flex-shrink: 0;
+        font-size: 0.62rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        color: #0f172a;
+        background-color: var(--accent-warn);
+        border-radius: 8px;
+        padding: 2px 6px;
+        margin-left: auto;
+    }
+    .node-leaf.prereq-highlight .toggle-arrow { margin-left: 6px; }
+
+    .node-detail {
+        cursor: default;
+        background-color: var(--card-bg);
+        border-left: 3px solid var(--accent, var(--accent-m1));
+    }
+    .node-detail:hover { transform: none; }
+
+    .node-detail.kind-prerequisitos { background-color: #241a0f; border-left-color: var(--accent-warn); border-left-style: dashed; }
+    .node-detail.kind-tecnologias { background-color: #0d2318; border-left-color: var(--accent-tech); }
+
+    .detail-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.66rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 700;
+        margin-bottom: 6px;
+        color: var(--accent, var(--accent-m1));
+    }
+    .node-detail.kind-prerequisitos .detail-header { color: var(--accent-warn); }
+    .node-detail.kind-tecnologias .detail-header { color: var(--accent-tech); }
+    .node-detail.kind-tecnologias .detail-content ul li::before { color: var(--accent-tech); }
+
+    .detail-content p { font-size: 0.82rem; color: #cbd5e1; line-height: 1.4; }
+
+    .detail-content ul { list-style: none; }
+    .detail-content ul li {
+        position: relative;
+        padding-left: 14px;
+        margin-bottom: 6px;
+        font-size: 0.82rem;
+        color: #cbd5e1;
+        line-height: 1.35;
+    }
+    .detail-content ul li:last-child { margin-bottom: 0; }
+    .detail-content ul li::before {
+        content: "•";
+        position: absolute;
+        left: 0;
+        font-weight: bold;
+        color: var(--accent, var(--accent-m1));
+    }
+
+    .tech-subgroup { margin-top: 10px; }
+    .tech-subgroup:first-child { margin-top: 0; }
+    .tech-subgroup-label {
+        font-size: 0.66rem;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+    .tech-subgroup.general .tech-subgroup-label { color: var(--accent-tech); }
+    .tech-subgroup.minero .tech-subgroup-label { color: var(--accent-mining); }
+    .tech-subgroup.minero ul li::before { color: var(--accent-mining); }
+
+    footer {
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        margin-top: 20px;
+    }
+</style>
+</head>
+<body>
+
+<div class="header">
+    <h1>Unidad Didáctica y Contenidos</h1>
+    <p>Arquitectura de Plataformas y Servicios de Tecnologías de la Información &middot; Vista radial de módulos, unidades didácticas, capacidades, indicadores, contenidos, pre-requisitos y tecnologías del mercado</p>
+</div>
+
+<div class="toolbar">
+    <div class="legend">
+        <div class="legend-item"><span class="legend-dot dot-m1"></span> Módulo I</div>
+        <div class="legend-item"><span class="legend-dot dot-m2"></span> Módulo II</div>
+        <div class="legend-item"><span class="legend-dot dot-m3"></span> Módulo III</div>
+        <div class="legend-item"><span class="legend-dot dot-warn"></span> Pre-requisito de la UD seleccionada</div>
+        <div class="legend-item"><span class="legend-dot dot-tech"></span> Tecnologías del mercado</div>
+    </div>
+    <button id="expandAllBtn">Expandir todo</button>
+    <button id="collapseAllBtn">Colapsar todo</button>
+    <div class="export-wrap">
+        <button id="exportBtn">Exportar ▾</button>
+        <div id="exportMenu" class="export-menu">
+            <button id="exportPngBtn" type="button">Descargar PNG</button>
+            <button id="exportPdfBtn" type="button">Descargar PDF</button>
+        </div>
+    </div>
+    <span class="hint">Clic en un módulo o en una unidad didáctica: despliega/colapsa sus ramas</span>
+</div>
+
+<div class="map-wrap">
+    <div id="map"></div>
+</div>
+
+<footer>Baycodec - J.Sumire</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const modules = [
+    {
+        id: 'm1', roman: 'I', color: '#38bdf8',
+        title: 'Gestión y Administración de Soporte Técnico de Plataformas y Servicios de TI',
+        children: [
+            { title: 'Organización y Admin. de Soporte Técnico',
+              prerequisitos: 'Ninguno: es un curso de inicio de la carrera (Periodo I). Se recomienda manejo de computadoras a nivel usuario.',
+              prereqRefs: [],
+              capacidad: 'Planificar, organizar y estructurar el centro de atención a usuarios (Helpdesk) aplicando estándares de servicio de TI.',
+              indicadores: ['Diseña el flujo de atención e incidentes de TI.', 'Elabora Acuerdos de Nivel de Servicio (SLA).', 'Aplica el modelo de Swarming y automatiza flujos de soporte, midiendo KPIs modernos (FCR, MTTR, CSAT, XLAs).'],
+              contenidos: ['Gestión de servicios de TI (ITIL).', 'Mesas de ayuda (Helpdesk/Service Desk).', 'Gestión de incidencias, solicitudes y SLAs.', 'ITIL 4 (Sistema de Valor del Servicio), modelo de Enjambre (Swarming) y automatización de flujos de soporte.', 'Métricas de experiencia (XLAs) y KPIs modernos de soporte (FCR, MTTR, CSAT).'],
+              tecnologias: { general: ['ITIL v4 (Foundation): marco de referencia más solicitado para gestión de servicios de TI — Sistema de Valor del Servicio (SVS) centrado en co-crear valor con el usuario.', 'Mesas de ayuda: Zendesk, Freshdesk, ServiceNow, Zoho Desk.', 'GLPI: solución open source líder en gestión de servicios e inventario de activos TI (ITAM) — ciclo de vida de incidentes, cambios, problemas y activos integrado con SLAs.', 'osTicket (alternativa open source).', 'Zammad / OTRS (Znuny): Service Desk web multicanal (correo, portal, chat, redes sociales) con flujos de trabajo automatizados.', 'Jira Service Management.', 'Chatbots de soporte con IA: Intercom, Freshchat.', 'Soporte remoto: TeamViewer, AnyDesk.', 'Comunicación interna: Microsoft Teams, Slack.', 'ChatOps: Mattermost, Rocket.Chat (open source, self-hosted) — notificación, escalamiento y coordinación de incidentes críticos en tiempo real.', 'Base de conocimiento: Confluence, Notion.', 'Bases de conocimiento y autoservicio: Outline, BookStack (open source) — reemplazos de Confluence para reducir el volumen de tickets (deflection).', 'Modelo de Enjambre (Swarming): equipos multidisciplinarios que resuelven problemas complejos desde el inicio, en vez de escalonar por niveles N1/N2/N3 rígidos.', 'Automatización sin código: n8n (open source) — restablecimiento de contraseñas, asignación de licencias y aprovisionamiento de permisos sin intervención humana.', 'Acuerdos de Nivel de Experiencia (XLAs): complementan los SLAs tradicionales midiendo satisfacción real e impacto en la productividad del usuario.', 'KPIs modernos de soporte: First Contact Resolution (FCR), MTTR (Mean Time to Repair), Customer Satisfaction Score (CSAT).', 'Certificación: ITIL Foundation Certificate.'],
+                minero: ['Soporte para Campamentos Remotos (FIFO): mesas de ayuda con modo offline-first y sincronización diferida para operar con conectividad satelital intermitente.', 'Convergencia IT/OT en la Gestión de Incidentes: clasificación y escalamiento de tickets que involucran sistemas de planta (SCADA/PLC) junto a los de TI corporativa.'] } },
+            { title: 'Mantenimiento de Equipos de Cómputo',
+              prerequisitos: 'Ninguno: es un curso de inicio de la carrera (Periodo I). Nociones básicas de hardware de PC.',
+              prereqRefs: [],
+              capacidad: 'Ejecutar acciones preventivas y correctivas a nivel de hardware y software en equipos informáticos.',
+              indicadores: ['Realiza mantenimiento preventivo de componentes.', 'Diagnostica fallas de hardware mediante instrumental.', 'Implementa monitoreo remoto centralizado (RMM) con telemetría predictiva y gestión automatizada de parches.'],
+              contenidos: ['Arquitectura de computadoras y componentes.', 'Mantenimiento preventivo y limpieza física.', 'Diagnóstico e instrumental de medición.', 'Gestión remota centralizada (RMM open source), telemetría predictiva y gestión de parches (patch management).'],
+              tecnologias: { general: ['Diagnóstico y monitoreo: CPU-Z, GPU-Z, HWiNFO, CrystalDiskInfo, HWMonitor.', 'Diagnóstico S.M.A.R.T. profundo: Smartmontools — desgaste de SSDs NVMe (percentage_used) y predicción de fallas de escritura.', 'Pruebas de estrés y benchmark: MemTest86 (RAM), 3DMark, Cinebench, PassMark.', 'Clonado e imágenes de disco: Clonezilla, Macrium Reflect, Acronis True Image.', 'Gestión de drivers: Snappy Driver Installer, Driver Booster.', 'Actualización y configuración de BIOS/UEFI.', 'Windows 10/11 y distribuciones Linux a nivel de administración técnica.', 'Antivirus/antimalware empresarial: Windows Defender, Malwarebytes.', 'EDR/Antivirus centralizado: Wazuh (SIEM/XDR open source) — detección de malware y malas configuraciones desde una consola centralizada, reemplazando licencias individuales de antivirus.', 'Soporte y acceso remoto: TeamViewer, AnyDesk.', 'Gestión Remota Centralizada (RMM open source): Tactical RMM (Python/Go) — monitoreo de salud de cientos de equipos Windows/Linux/macOS, scripts automáticos y despliegue de parches desde un panel web.', 'MeshCentral (open source): control remoto KVM/VNC vía web, incluso detrás de NATs o firewalls complejos.', 'Telemetría predictiva: dashboards Grafana + Telegraf — temperatura de CPU/GPU, errores de memoria y thermal throttling, con alertas automáticas ante umbrales críticos.', 'Gestión de Parches (Patch Management): Winget (Windows), Chocolatey (open source), APT, Flatpak — actualización silenciosa sin intervención del usuario.', 'Gestión de inventario y activos TI: GLPI, Spiceworks, OCS Inventory.', 'Materiales térmicos avanzados: pastas de cambio de fase (PCM, Honeywell PTM7950) y thermal pads de alto rendimiento para equipos de alto consumo.', 'Instrumental: multímetro digital, tarjeta POST/debug, kit antiestático (ESD).', 'Certificación de referencia en el mercado: CompTIA A+.'],
+                minero: ['Equipos Robustecidos (Rugged) para Faenas Mineras: Panasonic Toughbook, Getac, Dell Rugged Extreme — certificados MIL-STD-810H e IP65/67 para polvo, vibración y temperatura extrema.', 'Gestión de Flota de TI en Sitios Remotos: inventario y ciclo de vida de equipos de cómputo distribuidos en faenas alejadas de centros urbanos.', 'Mantenimiento en Entornos Críticos: limpieza técnica y sellado en ambientes de alta polución o humedad (minería, pesquería) utilizando gabinetes industriales con certificación IP.'] } },
+            { title: 'Infraestructura de Redes de Comunicación',
+              prerequisitos: 'Ninguno: es un curso de inicio de la carrera (Periodo I). Conceptos básicos de informática y conectividad.',
+              prereqRefs: [],
+              capacidad: 'Diseñar e implementar cableado estructurado y redes LAN cumpliendo normas internacionales.',
+              indicadores: ['Diseña y poncha cableado según norma TIA/EIA-568.', 'Configura switches, routers y subredes IPv4/IPv6.', 'Reconoce herramientas de automatización de red con Python y sistemas operativos de red abiertos.'],
+              contenidos: ['Modelo OSI y TCP/IP.', 'Cableado estructurado y estándares.', 'Configuración básica de switches y routers.', 'Introducción a la automatización de red (Python/Ansible), SDN e IPv6 en producción.'],
+              tecnologias: { general: ['Cisco Packet Tracer, GNS3, EVE-NG (simulación de redes, open source).', 'Equipos: Cisco, MikroTik, Ubiquiti, TP-Link, HPE Aruba.', 'RouterOS (sistema operativo de MikroTik): muy usado en LATAM por su costo-beneficio en routing y firewall.', 'Certificaciones: CCNA, CompTIA Network+, MTCNA (MikroTik Certified Network Associate).', 'Certificadores de cableado: Fluke Networks.', 'Protocolos: VLAN, STP, OSPF, EIGRP, BGP.', 'Monitoreo de red: Wireshark (open source), SolarWinds, LibreNMS (open source).', 'SD-WAN y Cloud-Native: Fortinet SD-WAN, Cisco Meraki, AWS Transit Gateway.', 'Automatización de Red: Ansible (Network Modules), Nornir (Python) — respaldos, despliegue de VLANs/ACLs y actualización de firmware en cientos de dispositivos mediante código.', 'Librerías Python para redes: Netmiko, NAPALM — abstracción de sintaxis entre proveedores y gestión programática de dispositivos.', 'Sistemas Operativos de Red Abiertos (NOS): SONiC (Linux Foundation, hardware white-box), VyOS (ruteo BGP/OSPF, VPNs y firewall sobre x86).', 'Redes Definidas por Software (SDN): controladores OpenDaylight / Ryu con protocolos OpenFlow o P4 para centralizar la inteligencia de la red.', 'Telemetría de Red: gRPC Network Management Interface (gNMI) y Streaming Telemetry, reemplazando al SNMP tradicional para métricas en milisegundos.', 'IPv6 en producción: esquemas de direccionamiento /64 y /56, Dual Stack, NAT64/DNS64 e ICMPv6 Neighbor Discovery.', 'Gestión estructurada de red: NETCONF / RESTCONF y modelos YANG — datos en JSON/XML en vez del parsing de texto de la CLI tradicional.'],
+                minero: ['Redes Industriales (OT) y Protocolos: switches industriales de alto grado (Moxa, Hirschmann, Ruggedcom); protocolos Modbus, OPC-UA, DNP3 y Ethernet/IP.', 'Modelo de Referencia Purdue (PERA): arquitectura estándar para aislar la red corporativa (TI) de la red del proceso productivo (OT).'] } },
+            { title: 'Taller de Sistemas Operativos',
+              prerequisitos: 'Manejo de computadoras a nivel usuario. Se recomienda cursar en paralelo con Mantenimiento de Equipos de Cómputo.',
+              prereqRefs: ['Mantenimiento de Equipos de Cómputo'],
+              capacidad: 'Instalar, configurar y optimizar sistemas operativos cliente para entornos corporativos.',
+              indicadores: ['Instala y automatiza el despliegue de SO.', 'Configura particiones, permisos y usuarios.', 'Diagnostica el kernel con herramientas eBPF/syscalls y gestiona servicios con systemd avanzado.'],
+              contenidos: ['Instalación y despliegue de SO Windows/Linux.', 'Gestión de discos, permisos y archivos.', 'Comandos y scripts básicos de consola.', 'Contenedores rootless, inspección del kernel (eBPF) y sistemas de archivos avanzados (ZFS/Btrfs).', 'Sistemas operativos inmutables, scripting validado y gestión avanzada de servicios con systemd.'],
+              tecnologias: ['Windows Server 2019/2022 y Windows 10/11.', 'Linux: Ubuntu Server, Debian, AlmaLinux, Red Hat (RHEL) — todas de código abierto.', 'Linux Enterprise avanzado: Red Hat Enterprise Linux (RHEL 9), Rocky Linux, bash scripting avanzado y hardening de servidores.', 'Virtualización: VirtualBox (open source), VMware Workstation, Hyper-V, Proxmox VE (open source) y KVM/QEMU (open source).', 'Contenedores: Docker, Podman (open source, contenedores rootless sin privilegios de superusuario).', 'Diagnóstico e Inspección del Kernel: eBPF + Cilium / BCC — monitoreo de rendimiento, ciberseguridad y redes ejecutando programas seguros en el espacio de kernel.', 'Herramientas de diagnóstico de procesos: Sysdig, htop, strace, lsof — syscalls, archivos abiertos y descriptores de socket por proceso.', 'Sistemas de archivos avanzados: ZFS, Btrfs, LVM — snapshots instantáneos, deduplicación y arreglos de almacenamiento por software.', 'Sistemas operativos inmutables/atómicos: Fedora Silverblue, Talos Linux, Flatcar — raíz de solo lectura, actualizaciones atómicas con rollback automático si fallan.', 'Scripting con PowerShell y Bash, validado con ShellCheck (linter de errores de sintaxis y seguridad en Bash).', 'Rust / Go para utilitarios de sistema: sustituyen a C para programar herramientas de bajo nivel seguras en memoria.', 'Gestión de servicios con systemd: archivos .service, restricción de recursos (CPUQuota, MemoryLimit), aislamiento (PrivateTmp, ProtectSystem) y análisis de arranque (systemd-analyze).', 'Automatización de despliegue: Ansible (open source).', 'Gestión de imágenes: Windows Deployment Services (WDS), MDT.', 'Gestión de actualizaciones: WSUS, patch management.', 'Escritorios virtuales (VDI): Citrix, VMware Horizon (tendencia empresarial).', 'Certificaciones: CompTIA Linux+, LPIC-1, Microsoft MD-100.'] },
+            { title: 'Administración de Servidor de Redes',
+              prerequisitos: 'Infraestructura de Redes de Comunicación y Taller de Sistemas Operativos (fundamentos de redes y de SO).',
+              prereqRefs: ['Infraestructura de Redes de Comunicación', 'Taller de Sistemas Operativos'],
+              capacidad: 'Administrar servidores de red para proveer servicios de directorio, archivos e infraestructura.',
+              indicadores: ['Implementa Active Directory o dominios Linux.', 'Configura servicios esenciales como DHCP y DNS.', 'Automatiza la configuración de servidores con IaC y aplica hardening según CIS Benchmarks.'],
+              contenidos: ['Servidores Windows Server y Linux.', 'Servicios de Red: DNS, DHCP, FTP y Web.', 'Políticas de grupo (GPO) y gestión de usuarios.', 'Automatización con IaC (Ansible/Terraform), observabilidad (Prometheus/Grafana) y hardening de servidores (CIS Benchmarks).'],
+              tecnologias: ['Active Directory y Group Policy (Windows Server).', 'Samba / OpenLDAP (Linux, open source).', 'FreeIPA / Red Hat Directory Server: reemplazo open source de Active Directory — LDAP, Kerberos, DNS y NTP integrados para gestión centralizada de identidades en entornos Linux.', 'Automatización de Configuración (IaC): Ansible (open source, sin agentes vía SSH) — instalación, actualización y hardening de cientos de servidores mediante playbooks YAML.', 'Aprovisionamiento de infraestructura: OpenTofu / Terraform — VMs, redes y discos como código reproducible antes de configurar los servicios.', 'Servicios DNS, DHCP, FTP/SFTP: BIND9/Unbound, Kea DHCP / isc-dhcp-server (open source).', 'Centrales telefónicas IP (PBX): Asterisk, FreePBX, 3CX — telefonía VoIP sobre protocolo SIP.', 'Virtualización de servidores: Hyper-V, VMware ESXi, Proxmox VE (open source).', 'VPNs modernas: WireGuard (reemplazo de OpenVPN/IPsec, nativo en el kernel Linux), Headscale (self-hosted, plano de control de Tailscale para redes mesh encriptadas sin exponer puertos).', 'Identidad híbrida en la nube: Microsoft Entra ID (Azure AD).', 'Gestión de identidades multi-cloud: Okta, Federated SSO.', 'Monitoreo de servidores: Zabbix (open source), PRTG.', 'Observabilidad: Prometheus + Grafana — métricas de CPU, RAM, I/O y estado de servicios en dashboards en tiempo real.', 'Centralización de logs: Grafana Loki, stack ELK (Elasticsearch, Logstash, Kibana) — correlación de eventos y diagnóstico de fallos.', 'Hardening de servidores: CIS Benchmarks, firewalls locales (UFW/nftables), acceso SSH solo por llaves criptográficas.', 'Prevención de fuerza bruta: Fail2ban, CrowdSec (open source) — bloqueo automático de IPs maliciosas.', 'Sistemas operativos inmutables: Flatcar Container Linux, Talos Linux — sistema de archivos de solo lectura, servicios exclusivamente en contenedores.', 'Backup: Veeam Backup & Replication, Bacula/Restic (open source).', 'Administración de servicios en la nube: SharePoint, OneDrive.', 'Certificaciones: Microsoft Windows Server Hybrid Administrator, Red Hat Certified System Administrator (RHCSA).'] },
+            { title: 'Redes Inalámbricas',
+              prerequisitos: 'Infraestructura de Redes de Comunicación (modelo OSI/TCP-IP, cableado y configuración de switches/routers).',
+              prereqRefs: ['Infraestructura de Redes de Comunicación'],
+              capacidad: 'Planificar, configurar y asegurar redes inalámbricas de área local (WLAN).',
+              indicadores: ['Realiza site surveys para cobertura Wi-Fi.', 'Configura puntos de acceso con cifrados seguros.', 'Implementa autenticación empresarial (FreeRADIUS/NAC) y audita el espectro de RF en busca de APs no autorizados.'],
+              contenidos: ['Estándares IEEE 802.11 (Wi-Fi).', 'Configuración de Access Points y Routers Wireless.', 'Seguridad inalámbrica (WPA2/WPA3, RADIUS).', 'Control de Acceso a la Red (NAC), auditoría de RF y redes inalámbricas industriales (LoRaWAN, mesh).'],
+              tecnologias: { general: ['Ubiquiti UniFi.', 'Cisco Meraki, Aruba Networks, MikroTik wAP.', 'Controladores WLAN centralizados: Cisco WLC.', 'Controladores WLAN open source: OpenWrt + OneWiFi / OpenWifi (TIP - Telecom Infra Project) — convierte hardware comercial en APs gestionados centralmente, con soporte Wi-Fi 6/6E y orquestación remota.', 'Estándares Wi-Fi 6E / Wi-Fi 7 (tendencia actual en despliegues empresariales).', 'Gestión centralizada desde la nube: Aruba Central, Cisco DNA Center.', 'Seguridad WPA3 y autenticación RADIUS: FreeRADIUS (servidor RADIUS open source más usado) para WPA3-Enterprise/802.1X integrado con OpenLDAP/Active Directory.', 'Control de Acceso a la Red (NAC): PacketFence (open source) — perfilamiento de dispositivos, portal cautivo y aislamiento de clientes no autorizados o infectados.', 'Roaming empresarial: 802.11r/k/v.', 'Site survey: Ekahau, NetSpot, con modelado predictivo de atenuación según materiales (concreto, metal, vidrio) para calcular densidad de APs y capacidad por usuario.', 'Auditoría de RF: Wireshark en modo monitor (tramas 802.11, Beacons, Probe Requests, Handshakes WPA2/WPA3), Kismet / LinSSID (detección de APs rogue y mapeo de espectro).', 'Analizadores Wi-Fi: Wi-Fi Analyzer, inSSIDer, iperf.', 'Certificaciones: CWNA, CCNA Wireless.'],
+                minero: ['Redes Privadas LTE/5G Mineras: Open5GS, Magma Core (open source) para el núcleo de red en frecuencias CBRS o bandas dedicadas — baja latencia y aislamiento de interferencias para flota autónoma y teleoperación.', 'Redes LoRaWAN Industriales: ChirpStack (open source) — servidor de red privada LoRaWAN para recolectar datos de miles de sensores IoT a kilómetros de distancia con batería de larga duración.', 'Redes Mesh Industriales (IEEE 802.11s): redes autoreparables para maquinaria móvil (camiones de extracción, palas) donde el cableado estructurado es inviable.', 'Sistemas Satelitales y Enlaces Remotos: Starlink Business, VSAT de baja latencia para campamentos y socavones.'] } },
+            { title: 'Centro de Datos (Data Center)',
+              prerequisitos: 'Infraestructura de Redes de Comunicación y Administración de Servidor de Redes.',
+              prereqRefs: ['Infraestructura de Redes de Comunicación', 'Administración de Servidor de Redes'],
+              capacidad: 'Implementar y administrar el equipamiento físico y ambiental de un Centro de Datos.',
+              indicadores: ['Diseña la distribución física y racks de Data Center.', 'Calcula requerimientos de energía y climatización.', 'Documenta activos con DCIM y optimiza la eficiencia energética (PUE/CUE) del Data Center.'],
+              contenidos: ['Estándares TIA-942 para Data Centers.', 'Sistemas de alimentación ininterrumpida (UPS) y climatización.', 'Organización de Racks y monitoreo ambiental.', 'Gestión de infraestructura (DCIM), nube privada, almacenamiento definido por software y automatización bare-metal.'],
+              tecnologias: { general: ['Estándar TIA-942 y Uptime Institute Tier Standards.', 'Monitoreo: Zabbix, PRTG, Nagios, SolarWinds.', 'Gestión de Infraestructura (DCIM): NetBox — documentación y gestión de activos (Source of Truth), racks, IPAM, cableado físico y conexiones de red en una sola plataforma.', 'OpenDCIM: alternativa libre para seguimiento de consumo eléctrico, capacidad de racks y carga térmica por gabinete.', 'Virtualización: VMware vSphere, Proxmox, Hyper-V.', 'Nube privada: OpenStack — estándar para aprovisionar cómputo, almacenamiento y red bajo demanda mediante APIs.', 'Orquestación de contenedores: Kubernetes (introducción, tendencia en DC modernos).', 'Almacenamiento definido por software (SDS): VMware vSAN, Ceph (open source, almacenamiento distribuido por bloques, objetos S3 y archivos, sin depender de SANs propietarias).', 'Automatización Bare-Metal (IaC): Canonical MAAS, Ironic (OpenStack) — aprovisionamiento de servidores físicos vía PXE de forma automatizada.', 'UPS y PDU inteligentes: APC, Eaton.', 'Gestión remota de servidores: iDRAC (Dell), iLO (HPE).', 'Eficiencia energética: métricas PUE y CUE (Power/Carbon Usage Effectiveness) — optimización mediante refrigeración líquida por inmersión (Liquid Immersion Cooling) y gestión inteligente de cargas.', 'Data centers en la nube y edge computing (tendencia actual).', 'Certificación: Data Center Certified Professional (CDCP).'],
+                minero: ['Edge Computing e Informática Industrial: computadoras rugerizadas (Advantech), servidores de borde instalados en pala/camión y virtualización con tolerancia a fallas de energía (Stratus Technologies).', 'Data Centers Modulares/Contenerizados: nodos Edge resistentes a polvo, vibración y temperaturas extremas para minería, reduciendo la latencia al procesar datos directamente en el sitio.', 'Sistemas de Energía Crítica e Instrumentación: protocolos SNMP en UPS de gran escala (Eaton, APC) y telemetría de energía en Data Centers de mina.'] } },
+            { title: 'Dispositivos de Seguridad y Vigilancia',
+              prerequisitos: 'Infraestructura de Redes de Comunicación (direccionamiento IP y cableado estructurado).',
+              prereqRefs: ['Infraestructura de Redes de Comunicación'],
+              capacidad: 'Instalar e integrar sistemas de videovigilancia IP y control de acceso.',
+              indicadores: ['Instala y configura cámaras IP y NVR/DVR.', 'Integra alertas y monitoreo remoto de seguridad.', 'Implementa VMS open source con analítica de IA y aplica hardening de ciberseguridad en cámaras y control de acceso.'],
+              contenidos: ['Sistemas CCTV e IP.', 'Configuración de DVRs, NVRs y switches PoE.', 'Sistemas de control de acceso y sensores.', 'VMS open source, protocolos de interoperabilidad (ONVIF/RTSP) y analítica de video con IA en el borde (Edge AI).'],
+              tecnologias: { general: ['Cámaras IP: Hikvision, Dahua, Ubiquiti Protect.', 'Software y apps: Hik-Connect, IDMSS, gestión NVR/DVR.', 'Plataformas cloud: Verkada, UniFi Protect, Eufy, Reolink.', 'Sistemas VMS open source: ZoneMinder, Shinobi — gestión, grabación y análisis de cámaras IP sobre servidores Linux estándar, sin costo por canal.', 'Frigate NVR (open source): VMS diseñado para integración con IA (aceleradores como Google Coral) — detección de objetos en tiempo real con bajo consumo de CPU.', 'Interoperabilidad: protocolo ONVIF (Profiles S, G, T) y flujos RTSP para integrar cámaras de cualquier fabricante sin bloqueo de proveedor.', 'Automatización de eventos: Home Assistant, Node-RED (open source) vía MQTT — orquestación de sensores, alarmas y respuestas automáticas (luces, Telegram, sirenas).', 'Analítica de Video en el Borde (Edge AI): OpenCV + YOLO para reconocimiento facial, lectura de placas (LPR/ANPR), cruce de línea virtual y detección de incendios.', 'Switches PoE.', 'Control de acceso: ZKTeco, protocolo OSDP (AES-128) reemplazando al inseguro Wiegand, lectores biométricos IP vía PoE y REST/MQTT.', 'Integración con sistemas de alarma y domótica.', 'Hardening de CCTV: VLANs dedicadas, desactivación de UPnP/P2P, cambio de credenciales de fábrica y encriptación de flujos con TLS/SRTP — las cámaras IP son de los vectores de ataque más vulnerables (botnets como Mirai).'],
+                minero: ['Sistemas de Detección de Proximidad y Prevención de Colisiones: soluciones como Hexagon MineProtect y Wenco, con tecnología RFID/UWB, para alertar la interacción entre vehículos pesados y personal en zona de mina.', 'Geocercas (Geofencing) y Control de Zonas Restringidas: integración GPS/GIS para bloquear el acceso a áreas de voladura o de alto riesgo.', 'Vigilancia con Drones y Cámaras Térmicas: monitoreo de taludes, pilas de mineral y perímetros extensos en operaciones a tajo abierto.', 'Detección de EPP (Equipo de Protección Personal): identificación de cascos y chalecos reflectantes mediante visión por computadora (OpenCV/YOLO), exigida por normativas de seguridad minera.'] } },
+            { title: 'Reparación de Equipos de Cómputo',
+              prerequisitos: 'Mantenimiento de Equipos de Cómputo (arquitectura de computadoras y componentes de hardware).',
+              prereqRefs: ['Mantenimiento de Equipos de Cómputo'],
+              capacidad: 'Diagnosticar y reparar fallas a nivel electrónico y de componentes en laptops y PCs.',
+              indicadores: ['Identifica y reemplaza componentes averiados a nivel de placa.', 'Aplica técnicas de soldadura y recuperación de tarjetas.', 'Diagnostica fallas de firmware (BIOS/UEFI/TPM) y valida la estabilidad térmica del hardware reparado.'],
+              contenidos: ['Electrónica básica aplicada a tarjetas madres.', 'Técnicas de soldadura y desoldadura SMD.', 'Reparación de fuentes de poder y laptops.', 'Diagnóstico de firmware (BIOS/UEFI/TPM/Secure Boot) y pruebas de estrés post-reparación.'],
+              tecnologias: { general: ['Estación de soldadura SMD/THT (Hakko, Weller).', 'Reballing de chips BGA (nivel avanzado).', 'Software: MemTest86, HDD Regenerator, HWMonitor.', 'OpenBoardView (open source): lectura de esquemáticos y boardviews para rastrear líneas de voltaje (3.3V, 5V, VCORE), cortos y fallas en MOSFETs/condensadores SMD.', 'Diagnóstico S.M.A.R.T.: Smartmontools, NVMe-CLI — lectura profunda de parámetros SATA/NVMe para anticipar fallas antes de perder datos.', 'Multitester, fuente de poder variable, microscopio digital, cámara térmica (detección de cortocircuitos por sobrecalentamiento).', 'Reprogramación de BIOS/UEFI: programador CH341A con Flashrom (open source) para recuperar memorias SPI Flash corruptas.', 'Diagnóstico de TPM 2.0 y Secure Boot: configuración de seguridad del firmware, BitLocker y fallos de arranque seguro en entornos corporativos.', 'Diagnóstico avanzado: tarjeta POST/debug.', 'Pruebas de estrés post-reparación: GSmartControl, Stress-ng.', 'Recuperación de datos: Recuva, TestDisk.', 'Certificación de referencia en el mercado: CompTIA A+.'],
+                minero: ['Reparación de Equipos Rugerizados en Campo: diagnóstico y reemplazo de componentes en laptops/tablets industriales (Toughbook, Getac) usados en faenas mineras.', 'Logística de Repuestos para Sitios Aislados: gestión de inventario crítico y kits de mantenimiento para minimizar tiempos de inactividad en ubicaciones sin talleres cercanos.', 'Diagnóstico y Mantenimiento de SBCs Industriales: Raspberry Pi, NUCs y controladores embebidos que sustituyen a los PCs tradicionales en plantas de producción y minería.'] } },
+            { title: 'Algoritmia Computacional',
+              prerequisitos: 'Ninguno formal. Se recomienda nociones básicas de matemática y razonamiento lógico.',
+              prereqRefs: [],
+              capacidad: 'Diseñar algoritmos lógicos para resolver problemas de procesamiento de información.',
+              indicadores: ['Elabora diagramas de flujo y pseudocódigo estructurado.', 'Aplica estructuras condicionales y repetitivas.', 'Reconoce nociones básicas de complejidad algorítmica y estructuras de datos elementales.'],
+              contenidos: ['Lógica de programación y pseudocódigo.', 'Estructuras selectivas (if, switch).', 'Estructuras repetitivas (for, while) y arreglos.', 'Introducción a la complejidad algorítmica (Big O) y estructuras de datos elementales (listas, pilas, colas).'],
+              tecnologias: ['PSeInt (pseudocódigo).', 'Diagramas de flujo: Draw.io, Lucidchart, Visio.', 'Base lógica transferible a Python, Java, C.', 'Complejidad algorítmica (Big O): noción intuitiva de por qué un algoritmo puede volverse lento al crecer los datos.', 'Estructuras de datos elementales: listas enlazadas, pilas (stacks) y colas (queues), como base para cursos posteriores.', 'Plataformas de práctica: HackerRank, Exercism, Codewars, LeetCode.', 'Notebooks interactivos: Jupyter, Google Colab.', 'Asistentes de IA para aprender lógica de programación: GitHub Copilot, ChatGPT.'] }
+        ]
+    },
+    {
+        id: 'm2', roman: 'II', color: '#818cf8',
+        title: 'Planificación y Puesta en Producción de los Sistemas de Información',
+        children: [
+            { title: 'Análisis y Diseño de Arq. de Software',
+              prerequisitos: 'Algoritmia Computacional (lógica de programación y resolución de problemas).',
+              prereqRefs: ['Algoritmia Computacional'],
+              capacidad: 'Modelar y diseñar la arquitectura de software de acuerdo a los requerimientos del negocio.',
+              indicadores: ['Modela diagramas UML (casos de uso, clases, secuencia).', 'Diseña arquitecturas desacopladas o por capas.', 'Documenta decisiones de arquitectura (ADRs) y diseña sistemas resilientes y observables con patrones distribuidos.'],
+              contenidos: ['Ingeniería de Requerimientos.', 'Lenguaje Unificado de Modelado (UML).', 'Patrones de diseño y arquitecturas de software.', 'Modelado C4 y Diagrams as Code, ADRs y Domain-Driven Design (Event Storming, Bounded Contexts).', 'Arquitecturas orientadas a eventos (EDA), patrones distribuidos (CQRS, Saga) y resiliencia/observabilidad.'],
+              tecnologias: { general: ['C4 Model (Context, Containers, Components, Code): estándar ligero que ha reemplazado la mayoría de diagramas UML tradicionales, con 4 niveles de zoom.', 'Diagrams as Code: Structurizr, C4-PlantUML (open source) — arquitectura escrita como texto en el repositorio Git, generando diagramas C4 automáticamente.', 'UML: StarUML, Visual Paradigm, Enterprise Architect.', 'BPMN: Bizagi Modeler, Camunda Modeler.', 'Draw.io / Lucidchart.', 'Architecture Decision Records (ADRs): registros en Markdown (adr-tools) — qué decisión se tomó, por qué, qué alternativas se descartaron y sus consecuencias.', 'Domain-Driven Design (DDD): Event Storming (modelado visual con expertos de negocio), Bounded Contexts y Ubiquitous Language para delimitar módulos/microservicios.', 'Patrones de arquitectura: MVC, Microservicios, Clean Architecture (Uncle Bob) / Arquitectura Hexagonal (Ports & Adapters) — la lógica de negocio no depende de la base de datos, el framework web ni servicios de terceros.', 'Event-Driven Architecture (EDA): sistemas asíncronos desacoplados con brokers de mensajería (Apache Kafka, RabbitMQ, NATS).', 'Patrones distribuidos avanzados: CQRS (separación de lectura/escritura), Saga Pattern (transacciones distribuidas sin locks), Outbox Pattern (publicación confiable de eventos).', 'Resiliencia y Tolerancia a Fallos: Circuit Breaker (Resilience4j, Envoy), Retries, Rate Limiting.', 'Observabilidad desde el Diseño: métricas, logs estructurados y trazabilidad distribuida con OpenTelemetry.', 'Arquitectura cloud-native: AWS/Azure Well-Architected Framework.', 'Gestión ágil de requerimientos: Azure DevOps Boards, Jira.', 'Documentación: Confluence, Notion.'],
+                minero: ['Arquitectura de Integración IT/OT: modelo ISA-95 para la integración jerárquica entre sistemas ERP, MES y sistemas de control de planta (SCADA/PLC).', 'Interoperabilidad para Minería 4.0: estándares como OPC-UA y MIMOSA OSA-EAI para integrar plataformas de distintos fabricantes de equipos mineros.'] } },
+            { title: 'Fundamentos de Programación',
+              prerequisitos: 'Algoritmia Computacional (pseudocódigo, diagramas de flujo y estructuras de control).',
+              prereqRefs: ['Algoritmia Computacional'],
+              capacidad: 'Desarrollar aplicaciones sencillas utilizando un lenguaje de programación estructurado.',
+              indicadores: ['Traduce algoritmos a código ejecutable.', 'Utiliza funciones y manipulación de datos básicos.', 'Estima la complejidad de un algoritmo (Big O) y versiona su código en Git desde el primer ejercicio.'],
+              contenidos: ['Sintaxis y variables en lenguajes modernos.', 'Funciones, métodos y paso de parámetros.', 'Manejo de cadenas y arreglos multidimensionales.', 'Estructuras de datos aplicadas a problemas reales (filtrado, ordenamiento, búsqueda, JSON/CSV) y complejidad algorítmica (notación Big O).', 'Diagramación de lógica con código (Mermaid.js) y control de versiones desde el primer ejercicio.'],
+              tecnologias: ['Java.', 'Python: lenguaje principal recomendado para enseñar fundamentos — sintaxis limpia sin ruido sintáctico, enfoca al estudiante en la lógica y las estructuras de datos.', 'TypeScript: alternativa moderna a JavaScript básico, con tipado estático temprano para entender los tipos de datos sin la verbosidad de Java/C++.', 'C#.', 'JavaScript.', 'JupyterLab / Marimo (open source): notebooks interactivos que combinan código ejecutable, visualización de datos y texto explicativo.', 'Mermaid.js: diagramación de lógica mediante código, renderizable en GitHub, VS Code y documentación técnica.', 'IDEs: VS Code, IntelliJ IDEA, PyCharm.', 'Entornos online: Replit, Google Colab.', 'Control de versiones desde el día 1: Git/GitHub — el repositorio personal reemplaza la entrega de archivos .zip.', 'Complejidad algorítmica (Big O): comprensión intuitiva del costo temporal y espacial de un algoritmo.', 'Asistentes de código con IA: GitHub Copilot, ChatGPT, Claude — usados como tutor socrático (explicar errores, proponer casos de prueba) y no como generador ciego de código.', 'Plataformas de práctica: Codewars, LeetCode.'] },
+            { title: 'Taller de Programación',
+              prerequisitos: 'Fundamentos de Programación (sintaxis, funciones y manejo de datos básicos).',
+              prereqRefs: ['Fundamentos de Programación'],
+              capacidad: 'Desarrollar soluciones orientadas a objetos e integradas con interfaces gráficas.',
+              indicadores: ['Aplica conceptos de clases, herencia y polimorfismo.', 'Construye interfaces gráficas de usuario (GUI).', 'Aplica principios SOLID y refactoriza código con apoyo de pruebas unitarias y asistentes de IA.'],
+              contenidos: ['Programación Orientada a Objetos (POO).', 'Interfaces Gráficas y eventos.', 'Manejo de excepciones y persistencia local.', 'Principios SOLID, Clean Code y refactorización.', 'Flujo de trabajo colaborativo con Git (Pull Requests, Code Reviews) y programación asistida por IA.'],
+              tecnologias: ['Java (Swing/JavaFX).', 'C# (.NET): WinForms/WPF, .NET MAUI para apps de escritorio y multiplataforma.', 'Python: Tkinter, PyQt/PySide.', 'C++ con Qt: framework multiplataforma de alto rendimiento, estándar en software industrial y embebido.', 'Kotlin: Compose Multiplatform (Compose for Desktop), en creciente adopción.', 'Electron (JavaScript/TypeScript): apps de escritorio con tecnologías web (VS Code, Slack, Discord).', 'Persistencia local: SQLite, el motor embebido multiplataforma más usado.', 'ORMs: Hibernate/JPA (Java), Entity Framework Core (C#), SQLAlchemy (Python).', 'Serialización de datos: JSON (Jackson/Gson, System.Text.Json, json nativo de Python).', 'IDEs: VS Code / VSCodium (open source, estándar de la industria), NetBeans, IntelliJ IDEA, Eclipse, Visual Studio.', 'Dev Containers (Docker): entorno de desarrollo como código — mismas versiones de lenguaje, BD y herramientas para todo el equipo, sin importar el sistema operativo.', 'Control de versiones y flujo de trabajo real: Git, GitHub, GitLab — Git Flow / Trunk-Based Development, Pull Requests/Merge Requests, resolución de conflictos y Code Reviews.', 'Formatters y Linters: ESLint/Prettier (JS/TS), Black/Ruff (Python), Spotless (Java) — cumplimiento automático de normas de estilo y detección temprana de errores.', 'Principios SOLID y Clean Code: modularidad, responsabilidad única e inyección de dependencias.', 'Refactorización continua: identificación de code smells y reestructuración sin alterar el comportamiento externo.', 'Testing unitario: JUnit 5, Mockito (Java), PyTest (Python), Jest/Vitest (JavaScript/TypeScript).', 'Gestión de dependencias: Maven, Gradle.', 'Patrones de diseño (GoF): Singleton, Factory, Observer.', 'Integración continua y DevOps: GitHub Actions, Jenkins, ArgoCD (GitOps).', 'Buenas prácticas: Test-Driven Development (TDD) y Arquitectura Orientada a Eventos (EDA) con Apache Kafka o RabbitMQ.', 'Asistentes de código con IA: GitHub Copilot, Cursor, Continue.dev (open source) — el programador pasa de escribir sintaxis de memoria a evaluar, auditar y refactorizar código generado por LLMs.'] },
+            { title: 'Fundamentos de Base de Datos',
+              prerequisitos: 'Algoritmia Computacional (nociones básicas de estructuras de datos: arreglos y matrices).',
+              prereqRefs: ['Algoritmia Computacional'],
+              capacidad: 'Diseñar bases de datos relacionales asegurando la integridad de los datos.',
+              indicadores: ['Diseña modelos Entidad-Relación y Relacional.', 'Aplica reglas de normalización de bases de datos.', 'Decide cuándo normalizar o desnormalizar según el caso de uso, y elige el motor adecuado en un enfoque políglota.'],
+              contenidos: ['Modelado Entidad-Relación (DER).', 'Normalización de datos (1FN, 2FN, 3FN).', 'Lenguaje SQL: Consultas DDL y DML.', 'Desnormalización estratégica, diseño de datos orientado a API (API-First) y persistencia políglota.', 'Evolución de esquemas (Schema as Code) e integridad de datos en sistemas distribuidos (Teorema CAP).'],
+              tecnologias: ['MySQL.', 'MariaDB (fork open source de MySQL, muy usado en hosting compartido y stacks LAMP).', 'PostgreSQL.', 'SQL Server.', 'Oracle Database.', 'Modelado: MySQL Workbench, dbdiagram.io, Vertabelo.', 'Desnormalización Estratégica: romper la 3FN a propósito para ganar rendimiento de lectura en sistemas de alta carga, evitando Joins excesivos.', 'Diseño de Datos para Consumidor (API-First Data Design): modelar pensando en la jerarquía del JSON que consumirá el frontend/API.', 'Persistencia Políglota: PostgreSQL (lógica transaccional ACID), Redis (sesión/caché), MongoDB o JSONB (datos con estructura variable) — elegir el motor según el problema, no forzar todo a una tabla relacional.', 'Schema as Code: el diseño vive como archivo SQL o esquema de ORM (Prisma/Drizzle) versionado en el repositorio junto al código, con migraciones sin detener el servicio.', 'Teorema CAP y Consistencia Eventual: fundamento para elegir entre consistencia fuerte y eventual en sistemas distribuidos (IoT, minería, logística) donde la latencia de red es crítica.', 'Bases de datos en la nube: Amazon RDS, Azure SQL Database.', 'Herramientas de consulta multi-motor: DBeaver.', 'Certificación: Oracle Database SQL Certified Associate.'] },
+            { title: 'Taller de Base de Datos',
+              prerequisitos: 'Fundamentos de Base de Datos (modelo Entidad-Relación, normalización y SQL básico).',
+              prereqRefs: ['Fundamentos de Base de Datos'],
+              capacidad: 'Implementar y administrar un Sistema Gestor de Base de Datos (SGBD).',
+              indicadores: ['Escribe procedimientos almacenados y triggers.', 'Gestiona respaldos, usuarios y permisos.', 'Optimiza consultas mediante planes de ejecución e índices, y valida el esquema con pruebas automatizadas.'],
+              contenidos: ['Administración de SGBD (SQL Server/MySQL/PostgreSQL).', 'Programación en BD: Triggers, Stored Procedures.', 'Backup, restauración y optimización de consultas.', 'Modelado híbrido/NoSQL, indexación avanzada y testing de bases de datos.'],
+              tecnologias: { general: ['MySQL Workbench.', 'pgAdmin (PostgreSQL).', 'SQL Server Management Studio (SSMS).', 'PostgreSQL: el motor relacional open source más demandado — superior a MySQL en tipos de datos complejos (JSONB, Arrays), extensiones y cumplimiento del estándar SQL.', 'SQLite: motor embebido liviano para pruebas locales, apps móviles y software de escritorio sin servidor.', 'MariaDB: administración con mysqldump/mariabackup y replicación Galera Cluster para alta disponibilidad.', 'Clientes universales open source: DBeaver, Beekeeper Studio — gestión de múltiples motores (PostgreSQL, MySQL, SQLite, MongoDB) desde una sola interfaz.', 'Cloud DB: Amazon RDS, Azure SQL Database, Google Cloud SQL.', 'Automatización con Stored Procedures y Triggers.', 'Migraciones de esquema versionadas: Flyway (Community), Liquibase (open source) — control de cambios de esquema mediante archivos gestionados en Git.', 'ORMs con tipado seguro: Prisma, Drizzle ORM (TypeScript), SQLAlchemy (Python).', 'Modelado híbrido/NoSQL: tipos JSON/JSONB en PostgreSQL para estructuras flexibles dentro de tablas relacionales; MongoDB y Redis para colecciones documentales cuando la rigidez relacional frena el desarrollo.', 'Alta disponibilidad y replicación: MySQL Replication, PostgreSQL Streaming Replication, SQL Server Always On.', 'Optimización de consultas: planes de ejecución (EXPLAIN ANALYZE) e indexación avanzada (B-Tree, GIN, GiST, Hash).', 'Monitoreo y afinamiento de rendimiento: SQL Server Profiler, pgBadger, Percona Monitoring and Management (PMM).', 'Testing y datos de prueba: generación de datos sintéticos (Faker.js, Factory Boy) y pgTAP (testing unitario de funciones, triggers y restricciones en PostgreSQL).', 'Bases de datos en contenedores: MySQL/PostgreSQL sobre Docker.', 'Certificaciones: Oracle Certified Professional (OCP), Microsoft Azure Database Administrator Associate.'],
+                minero: ['Alta Disponibilidad y Replicación para Sitios Remotos: sincronización de bases de datos entre campamentos mineros y el datacenter central, resiliente a conectividad intermitente (enlaces VSAT/LTE).', 'Bases de Datos de Sistemas ERP/EAM Mineros: administración de motores que soportan SAP (módulo de minería), IBM Maximo y Oracle EBS para gestión de activos y mantenimiento de flota.', 'Continuidad Operativa 24/7 y Disaster Recovery: backups georreplicados y objetivos estrictos de RTO/RPO, dado el alto costo por hora de una interrupción en operaciones mineras.'] } },
+            { title: 'Bases de Datos Distribuidas',
+              prerequisitos: 'Taller de Base de Datos (administración de SGBD y SQL avanzado).',
+              prereqRefs: ['Taller de Base de Datos'],
+              capacidad: 'Configurar e implementar bases de datos distribuidas y no relacionales (NoSQL).',
+              indicadores: ['Configura replicación y fragmentación de datos.', 'Despliega soluciones NoSQL para gran volumen de datos.', 'Implementa bases de datos NewSQL/vectoriales distribuidas y flujos de CDC hacia sistemas de streaming.'],
+              contenidos: ['Conceptos y arquitectura de BD Distribuidas.', 'Replicación, fragmentación y transacciones.', 'Bases de datos NoSQL (MongoDB/Redis).', 'Consenso distribuido (Raft/Paxos), Change Data Capture (CDC) y arquitectura de Malla de Datos (Data Mesh).'],
+              tecnologias: { general: ['MongoDB (MongoDB Atlas), MongoDB Compass.', 'Redis, RedisInsight.', 'Dragonfly / KeyDB (reemplazos open source de Redis): almacenamiento en memoria multihilo para caché y gestión de sesiones.', 'Bases de Datos NewSQL / SQL Distribuido: CockroachDB Community Edition (inspirada en Google Spanner, compatible con PostgreSQL), TiDB (HTAP, compatible con el protocolo MySQL) — escalabilidad horizontal con consistencia ACID.', 'Apache Cassandra, ScyllaDB: motores NoSQL distribuidos de altísimo rendimiento, sin punto único de falla.', 'ClickHouse: motor open source orientado a columnas, el más rápido del mercado para analítica en tiempo real (Big Data, IoT, logs).', 'Firebase Firestore.', 'Elasticsearch.', 'Amazon DynamoDB.', 'Bases de datos vectoriales distribuidas: Milvus, Qdrant (búsqueda de similitud vectorial en milisegundos), pgvector (extensión vectorial open source para PostgreSQL).', 'Bases de datos vectoriales y Big Data Cloud: Snowflake, Databricks, Google BigQuery, Pinecone/ChromaDB para proyectos con IA.', 'Data Engineering: Apache Spark, dbt (data build tool) y conectores ETL/ELT (Airflow).', 'Change Data Capture (CDC): Debezium (open source) — transmite cada cambio (Insert/Update/Delete) a un bus de eventos como Kafka sin ralentizar el motor principal.', 'Apache Kafka / Redpanda (streaming de datos, muy demandado actualmente).', 'Algoritmos de Consenso Distribuido: Raft y Paxos — elección automática de líderes y resolución de particiones de red en bases de datos y orquestadores modernos.', 'Arquitectura de Malla de Datos (Data Mesh): transición de bases de datos monolíticas centralizadas hacia dominios de datos descentralizados gestionados por cada equipo.', 'Data Lakes y almacenamiento distribuido en la nube (tendencia Big Data).'],
+                minero: ['Historizadores de Planta (Time-Series DB): AVEVA PI System (OSIsoft PI), Canary Labs, GE Digital Historian — herramienta clave en minería para registrar millones de eventos por segundo de los procesos químicos y mecánicos.', 'Plataformas de Telemetría IoT: ABB Ability, Siemens MindSphere / Xcelerator, Schneider Electric EcoStruxure.'] } },
+            { title: 'Programación Web',
+              prerequisitos: 'Fundamentos de Programación y Fundamentos de Base de Datos.',
+              prereqRefs: ['Fundamentos de Programación', 'Fundamentos de Base de Datos'],
+              capacidad: 'Construir aplicaciones web dinámicas integrando tecnologías frontend y backend.',
+              indicadores: ['Diseña interfaces web responsivas con HTML/CSS/JS.', 'Conecta el backend a bases de datos relacionales.', 'Implementa pruebas automatizadas (E2E y unitarias) y comunicación en tiempo real (WebSockets).'],
+              contenidos: ['Frontend: HTML5, CSS3, JavaScript.', 'Backend: Node.js / PHP / Python / C#.', 'Integración de servicios web y APIs RESTful.', 'Testing automatizado, comunicación en tiempo real y desarrollo web asistido por IA.'],
+              tecnologias: { general: ['HTML5, CSS3, JavaScript (ES6+).', 'TypeScript (muy demandado actualmente).', 'Frameworks frontend: React, Vue.js, Angular, Svelte.', 'Meta-frameworks full-stack: Next.js / Remix (React) — SSR, SSG y rutas de API integradas; Nuxt.js (Vue) / SvelteKit (Svelte), muy demandados por su rendimiento.', 'Backend: Node.js (Express), PHP (Laravel), Python (Django/Flask), Java (Spring Boot), C# (ASP.NET Core) — muy demandado en el mercado empresarial.', 'Backends ligeros de alto rendimiento: FastAPI (Python, con validación Pydantic y documentación OpenAPI/Swagger automática), NestJS (TypeScript, arquitectura modular/Hexagonal) — el estándar empresarial en Node.js.', 'Runtimes JS/TS de nueva generación: Bun, Deno — sustituyendo progresivamente a Node.js en tareas de alto consumo de I/O.', 'Go (Golang) para microservicios concurrentes.', 'Componentes de UI: Shadcn/ui + Tailwind CSS — la combinación open source más usada para bibliotecas de componentes accesibles y personalizables.', 'CSS: Bootstrap, Tailwind CSS.', 'APIs: REST, GraphQL, Postman.', 'Comunicación en tiempo real: WebSockets, Server-Sent Events (SSE) — chats, notificaciones y paneles/telemetría en vivo.', 'gRPC / Protocol Buffers: protocolo de Google para comunicación entre microservicios, hasta 10 veces más rápido que REST sobre JSON.', 'Gestión de estado: Redux, Zustand.', 'Integración de IA en aplicaciones web: conexión con modelos vía API (OpenAI, Anthropic, Ollama local) y streaming de respuestas con Vercel AI SDK.', 'Asistentes de código con IA: Cursor, GitHub Copilot, Claude Code — refactorización, generación de pruebas y aceleración del ciclo de desarrollo.', 'Testing E2E: Playwright (Microsoft, open source), Cypress.', 'Testing unitario: Vitest, Jest.'],
+                minero: ['Sistemas MES / Fleet Management (Gestión de Flotas): integración mediante APIs a plataformas como Caterpillar MineStar, Modular Mining (DISPATCH) o Wenco.', 'Telemetría e IIoT (Internet Industrial de las Cosas): recolección de datos de sensores en tiempo real con Python y C++ (MQTT, Node-RED, InfluxDB).'] } },
+            { title: 'Gestión y Administración Web',
+              prerequisitos: 'Programación Web e Infraestructura de Redes de Comunicación (nociones de servidores y red).',
+              prereqRefs: ['Programación Web', 'Infraestructura de Redes de Comunicación'],
+              capacidad: 'Desplegar, configurar y administrar sitios y servicios web en servidores de producción.',
+              indicadores: ['Configura servidores web (Apache, Nginx, IIS).', 'Administra nombres de dominio y certificados SSL.', 'Despliega aplicaciones en contenedores Docker con CI/CD y monitorea la infraestructura en tiempo real.'],
+              contenidos: ['Servidores Web: Apache, Nginx, IIS.', 'Gestión de DNS, Dominios y SSL/TLS.', 'Administración de Gestores de Contenido (CMS).', 'Contenedores, CI/CD e Infraestructura como Código (IaC).'],
+              tecnologias: { general: ['Apache, Nginx, IIS.', 'Proxies inversos modernos: Caddy, Traefik — generación y renovación automática de certificados SSL (Let\'s Encrypt) sin configuración manual; Traefik se integra nativamente con Docker.', 'cPanel / Plesk.', 'Paneles open source (reemplazos de cPanel): HestiaCP, CyberPanel — gestión de dominios, correos, bases de datos MariaDB/PostgreSQL y WordPress con mejor rendimiento en VPS.', 'Paneles para desarrolladores: aaPanel, CloudPanel — despliegue rápido de sitios y APIs (Node.js, Python, PHP).', 'PaaS self-hosted: Dokku, Coolify, CapRover — despliegue automático con git push, similar a Heroku/Render pero en servidor propio.', 'Docker y Docker Compose: contenerización de PHP, MySQL y Node.js, garantizando paridad entre desarrollo y producción.', 'Portainer (open source): interfaz visual estándar para administrar contenedores, volúmenes y redes Docker.', 'Certificados SSL: Let\'s Encrypt.', 'CDN y seguridad web: Cloudflare.', 'CMS headless: Strapi, WordPress (tendencia actual).', 'Cloud hosting: AWS, DigitalOcean, Hostinger, GoDaddy.', 'CI/CD: GitHub Actions, GitLab CI, Vercel, Netlify.', 'Infraestructura como Código (IaC): Terraform, OpenTofu (open source) — aprovisionamiento de servidores mediante código en vez de configuración manual.', 'Monitoreo en tiempo real: Netdata, Grafana + Prometheus (open source) — CPU, RAM, tráfico, uptime y tiempos de respuesta.'],
+                minero: ['Portales e Intranets para Operaciones Remotas: CMS con estrategias de caché y contenido offline-first para campamentos con conectividad limitada.', 'Optimización Web sobre Enlaces Satelitales: técnicas de compresión y CDN edge para reducir la latencia en sitios conectados vía VSAT/Starlink.'] } }
+        ]
+    },
+    {
+        id: 'm3', roman: 'III', color: '#2dd4bf',
+        title: 'Diseño y Gestión de Infraestructura y Plataformas de TI',
+        children: [
+            { title: 'Aplicaciones Móviles',
+              prerequisitos: 'Taller de Programación (POO) y Fundamentos de Base de Datos.',
+              prereqRefs: ['Taller de Programación', 'Fundamentos de Base de Datos'],
+              capacidad: 'Desarrollar aplicaciones móviles híbridas o nativas para Android/iOS.',
+              indicadores: ['Diseña interfaces móviles centradas en la experiencia de usuario (UX/UI).', 'Integra APIs y servicios en la nube en apps móviles.', 'Automatiza la compilación, firma y publicación de apps (CI/CD móvil).'],
+              contenidos: ['Entornos de desarrollo móvil (Android Studio/Flutter/React Native).', 'Diseño UI/UX para dispositivos móviles.', 'Consumo de APIs REST y almacenamiento local.', 'CI/CD móvil, distribución beta y sincronización de datos offline.'],
+              tecnologias: { general: ['Flutter: creado por Google, usa el lenguaje Dart y ofrece un diseño visual muy fluido y rápido en Android e iOS.', 'React Native: desarrollado por Meta (Facebook), usa JavaScript y TypeScript, permitiendo aprovechar conocimientos web.', 'Expo (para React Native): estándar de facto de la industria — simplifica compilación, despliegue, acceso a sensores y actualizaciones Over-The-Air (OTA).', '.NET MAUI: sucesor oficial de Xamarin.Forms (Microsoft) — C# y XAML con una única base de código para iOS, Android, Windows y macOS; ruta de migración obligatoria para empresas con infraestructura .NET.', 'Uno Platform (open source): C# y XAML con renderizado píxel a píxel en iOS, Android, Windows, macOS, Linux y WebAssembly.', 'Kotlin Multiplatform (KMP): tendencia más fuerte en empresas grandes (banca, e-commerce, minería) — comparte la lógica de negocio (red, BD local, reglas) en Kotlin puro, manteniendo interfaces 100% nativas en Swift (iOS) y Jetpack Compose (Android).', 'Ionic con Capacitor: reemplazo moderno de Apache Cordova — convierte apps web (React, Vue, Angular) en apps nativas con acceso al hardware del dispositivo.', 'Flet: framework en Python (basado en Flutter) para crear apps móviles, web y de escritorio con una única base en Python puro, sin necesidad de aprender Dart/Kotlin/Swift.', 'MIT App Inventor: entorno de programación visual por bloques para crear apps Android sin escribir código — ideal para prototipado rápido y validación de ideas antes de pasar a un framework profesional.', 'Android Studio (Kotlin/Java nativo).', 'Jetpack Compose (Android): UI declarativa moderna, reemplazo de los XML de layouts tradicionales.', 'Swift (SwiftUI): desarrollo nativo para iOS/macOS con Xcode.', 'Firebase (Auth, Firestore, Cloud Messaging).', 'Fastlane (open source): automatización de compilación, firma de certificados y publicación en las tiendas.', 'Distribución beta: Firebase App Distribution y alternativas a App Center.', 'Publicación: Google Play Console, App Store Connect.'],
+                minero: ['Apps Offline-First para Trabajo de Campo: sincronización diferida de checklists de seguridad y reportes de incidentes en zonas sin cobertura de red.', 'Bases de Datos Locales y Sincronización Offline: PowerSync, ElectricSQL, WatermelonDB, Realm (open source) — vital en minería y sitios remotos sin señal, donde la app debe funcionar 100% offline y sincronizar automáticamente al recuperar conexión.', 'Integración con Wearables y Sensores IoT de Seguridad: monitoreo de fatiga, detección de gases y geolocalización de personal vía Bluetooth Low Energy (BLE).'] } },
+            { title: 'Seguridad de Tecnologías de la Información',
+              prerequisitos: 'Infraestructura de Redes de Comunicación y Administración de Servidor de Redes.',
+              prereqRefs: ['Infraestructura de Redes de Comunicación', 'Administración de Servidor de Redes'],
+              capacidad: 'Implementar controles de ciberseguridad para proteger la información de la organización.',
+              indicadores: ['Realiza auditorías básicas de vulnerabilidades.', 'Configura Firewalls y políticas de ciberseguridad.', 'Implementa un SOC con SIEM open source y responde ante incidentes de seguridad.'],
+              contenidos: ['Principios de Ciberseguridad e ISO 27001.', 'Seguridad en redes: Firewalls, VPNs e IDS/IPS.', 'Análisis de vulnerabilidades y Hacking Ético básico.', 'Modelo Zero Trust, DevSecOps y respuesta a incidentes.'],
+              tecnologias: { general: ['Wireshark, Nmap, Metasploit.', 'Distribuciones de pentesting: Kali Linux, Parrot OS (más liviana, orientada a privacidad y entornos cloud), BlackArch (basada en Arch, el repositorio de herramientas más grande), WifiSlax (especializada en auditoría de redes inalámbricas, muy usada en la comunidad hispanohablante).', 'Distribuciones de análisis forense: Tsurugi Linux, CAINE (Computer Aided Investigative Environment).', 'Wazuh (SIEM/XDR open source): estándar libre para Centros de Operaciones de Seguridad (SOC) — recolección de logs en tiempo real, detección de vulnerabilidades, monitoreo de integridad de archivos (FIM) y respuesta automatizada ante incidentes.', 'Firewalls: pfSense / OPNSense (open source, FreeBSD), Fortinet, Palo Alto.', 'Suricata / Zeek: motores IDS/IPS de inspección profunda de paquetes, integrables con SIEMs.', 'Greenbone Community Edition (OpenVAS): escáner de vulnerabilidades open source, reemplazo directo de Nessus para auditorías periódicas.', 'MISP (Malware Information Sharing Platform): plataforma libre para gestión e intercambio de Threat Intelligence.', 'SecOps y Monitoreo: SIEM/XDR corporativo (CrowdStrike, Microsoft Sentinel, Splunk).', 'Seguridad en la nube: AWS Security Hub, Microsoft Defender for Cloud (tendencia actual).', 'Cloud Security & Zero Trust: Zscaler, Palo Alto Prisma, Cloud Security Posture Management (CSPM), microsegmentación e IAM con Keycloak (open source).', 'DevSecOps: Trivy (escaneo de vulnerabilidades en contenedores), Gitleaks (detección de claves/secretos expuestos en código).', 'Gestión de contraseñas y MFA: Bitwarden, Microsoft Authenticator.', 'Respuesta a Incidentes y Análisis Forense: protocolos de contención ante ransomware, preservación de evidencia digital y cumplimiento de leyes de protección de datos personales.', 'Certificaciones: CompTIA Security+, CEH, ISO/IEC 27001:2022.'],
+                minero: ['Ciberseguridad OT e Infraestructuras Críticas: normas IEC 62443 y NIST SP 800-82, específicas para minería y plantas industriales.', 'SCADA y DCS: supervisión y control de procesos industriales con Rockwell Automation (FactoryTalk), Siemens (WinCC/PCS7), Schneider Electric o ABB System 800xA.', 'Visibilidad e Inspección Profunda de Paquetes (DPI): Dragos, Claroty, Nozomi Networks, Fortinet FortiGate con firmas OT — detectan si un ciberataque intenta alterar un PLC (controlador lógico programable) o una válvula en la planta de concentradora.', 'Acceso Remoto Seguro a Mina: Tosibox, CyberArk, PAM (Privileged Access Management) para contratistas que dan mantenimiento a la maquinaria.'] } },
+            { title: 'Proyectos de Investigación e Innovación',
+              prerequisitos: 'Haber cursado los Módulos I y II. Se apoya en Técnicas de Comunicación Efectiva (redacción técnica).',
+              prereqRefs: [],
+              capacidad: 'Formular y desarrollar proyectos de innovación tecnológica orientados a solucionar problemas reales.',
+              indicadores: ['Elabora un plan de proyecto metodológicamente estructurado.', 'Desarrolla prototipos funcionales evaluando el impacto.', 'Evalúa la madurez tecnológica (TRL) y realiza vigilancia de patentes antes de desarrollar el prototipo.', 'Selecciona el formato de documentación adecuado (ejecutivo, técnico corporativo o académico IEEE) según la audiencia del proyecto.'],
+              contenidos: ['Metodología de la investigación aplicada a TI.', 'Identificación de problemas y prototipado.', 'Redacción técnica y sustentación de proyectos.', 'Vigilancia tecnológica, niveles TRL y propiedad intelectual (patentes).', 'Estándares de documentación corporativa (Business Case, RFCs, ADRs, SRS) frente al formato académico IEEE.'],
+              tecnologias: { general: ['Google Scholar, Mendeley, Zotero.', 'Notion, Trello, Miro (lluvia de ideas).', 'Documentos Ejecutivos: Business Case / Pitch Deck — enfocados en ROI, riesgos, costos e impacto operativo, en formato de resumen ejecutivo (2 a 5 páginas) y tablas comparativas de costo/beneficio.', 'Documentación Técnica de Ingeniería: RFCs (Request for Comments) y ADRs (Architecture Decision Records) — formato usado por Google, Meta y Amazon para proponer e investigar cambios de arquitectura antes de construirlos.', 'Especificación de Requerimientos de Software (SRS): estándares IEEE 830 e ISO/IEC/IEEE 29148 para documentar funciones, interfaces, rendimiento y seguridad del sistema.', 'Formato de citación IEEE: reservado para papers científicos y fondos de financiamiento estatal/internacional, y para especificaciones técnicas/protocolos con datasheets y normas de la industria — no es el formato por defecto de la documentación corporativa.', 'OpenideaL: plataforma open source de gestión de innovación — convocatorias/desafíos, calificación colaborativa de ideas y embudo de desarrollo.', 'Gestión del conocimiento: AppFlowy, Outline, Logseq — alternativas open source a Notion/Confluence con bases de datos interconectadas.', 'Metodologías: Design Thinking, Lean Startup, Business Model Canvas.', 'Prototipado rápido: Figma, Penpot (alternativa open source bajo estándares web abiertos), MVP.', 'Captura de retroalimentación (Voice of Customer): Quackback, ClearFlask (open source).', 'Documentación técnica colaborativa: GitHub, Google Docs.', 'Vigilancia Tecnológica (Tech Scouting): mapeo activo de tecnologías emergentes, startups y proveedores para resolver problemas operativos.', 'Desafíos de Innovación Abierta: convocatorias a universidades y emprendedores externos mediante bases estructuradas y acuerdos de confidencialidad (NDA).', 'Niveles TRL (Technology Readiness Levels) 1-9: estándar NASA/UE para medir la madurez tecnológica, desde investigación básica (TRL 1) hasta comercialización (TRL 9) — lenguaje universal exigido por fondos de financiamiento.', 'Búsqueda y Vigilancia de Patentes: Google Patents, Espacenet, LATIPAT — verificación de novedad antes de invertir recursos.', 'Propiedad Intelectual y Transferencia Tecnológica: redacción de patentes de invención, modelos de utilidad, registro de software y licencias de uso.', 'Búsqueda Académica con IA: ResearchRabbit, Elicit, Consensus, SciSpace — mapeo de literatura científica.', 'Asistentes de IA para investigación: ChatGPT, Claude, Perplexity AI.', 'AI Engineering Integrado: desarrollo con OpenAI API, Anthropic Claude API, LangChain, LlamaIndex, Ollama para correr LLMs locales.', 'AI-Prototyping: herramientas Low-Code/No-Code asistidas por IA para crear un MVP funcional y validar hipótesis de negocio en días.'],
+                minero: ['Gemelos Digitales (Digital Twins) y Visión Computacional: NVIDIA Omniverse, Bentley Systems, OpenCV / YOLO — usados para detección de fatiga en conductores de camiones gigantes o análisis de desgaste de fajas transportadoras.'] } },
+            { title: 'Animación y Diseño Gráfico Digital',
+              prerequisitos: 'Ninguno técnico específico. Se recomienda manejo de herramientas ofimáticas y de internet.',
+              prereqRefs: [],
+              capacidad: 'Crear piezas gráficas vectoriales y elementos multimedia interactivos para plataformas digitales.',
+              indicadores: ['Diseña vectores, logotipos e identidades visuales.', 'Elabora animaciones 2D simples para web o redes.', 'Modela elementos 3D básicos y crea motion graphics ligeros para web.'],
+              contenidos: ['Fundamentos de diseño y teoría del color.', 'Herramientas de edición vectorial y de mapas de bits.', 'Técnicas de animación 2D y multimedia.', 'Introducción al modelado 3D y motion graphics.'],
+              tecnologias: ['Adobe Illustrator, Photoshop.', 'Figma, Canva Pro, Adobe XD.', 'Penpot: alternativa open source a Figma para diseño UI/UX, prototipado y Design Systems con SVG nativo.', 'Inkscape: alternativa open source a Illustrator/CorelDRAW para ilustración vectorial y diagramación técnica.', 'Krita: software preferido por ilustradores y concept artists para pintura digital y animación 2D cuadro a cuadro.', 'GIMP: estándar libre de edición fotográfica y retoque, alternativa a Photoshop en entornos que buscan evitar costos de licencia.', 'Adobe After Effects (animación 2D).', 'Glaxnimate: animaciones vectoriales ligeras exportables en formato Lottie (JSON), muy usadas en interfaces web y apps.', 'Synfig Studio: animación 2D vectorial mediante rigging/esqueletos e interpolación, sin redibujar cuadro a cuadro.', 'Blender: estándar de facto en software libre para modelado 3D, renderizado, simulación y VFX — incluye Grease Pencil para animación 2D dentro de un entorno 3D.', 'OpenToonz: animación 2D tradicional cuadro a cuadro, basado en el software usado por Studio Ghibli.', 'Procreate (diseño en tablet).', 'CorelDRAW (alternativa vectorial).', 'Diseño con IA generativa: Adobe Firefly, Midjourney (tendencia actual).'] },
+            { title: 'Producción Audiovisual',
+              prerequisitos: 'Animación y Diseño Gráfico Digital (fundamentos de diseño y edición digital).',
+              prereqRefs: ['Animación y Diseño Gráfico Digital'],
+              capacidad: 'Producir y editar contenido en audio y video para difusión en medios digitales.',
+              indicadores: ['Graba y edita video publicitario o corporativo.', 'Aplica postproducción, efectos de sonido y cortes de video.', 'Aplica flujos de edición asistidos por IA (transcripción, subtítulos automáticos) y composición VFX.'],
+              contenidos: ['Guionismo y encuadre de toma.', 'Software de edición de video (Premiere/DaVinci).', 'Edición de audio y exportación multiformato.', 'Composición y efectos visuales (VFX) y edición asistida por IA.'],
+              tecnologias: { general: ['Adobe Premiere Pro.', 'DaVinci Resolve.', 'Kdenlive: editor multilínea open source robusto, con edición en 4K, proxy editing y subtitulado directo — estándar en entornos Linux y corporativos sin licencias Adobe.', 'Shotcut: editor multiplataforma ligero para cortes rápidos y corrección de color básica.', 'OpenShot: edición ágil y animaciones sencillas de títulos.', 'Audacity, Tenacity (fork de Audacity respetuoso con la privacidad), Adobe Audition (audio).', 'Ardour: DAW (estación de trabajo de audio digital) de grado profesional para grabación multipista, mezcla y masterización.', 'Natron: composición digital basada en nodos (similar a Nuke) para croma, motion tracking y rotoscopia.', 'Blender: motor de rastreo de cámara 3D e inserción de elementos 3D en tomas reales, además de editor de secuencias de video (VSE).', 'CapCut (edición ágil para redes sociales).', 'Transmisión en vivo: OBS Studio, con integración NDI.', 'Protocolo NDI/SRT (video sobre IP): envío de señal de video en alta definición por red Ethernet sin pérdida de calidad, vital para salas de control y eventos en vivo.', 'Edición de video basada en texto e IA: Descript, CapCut (Desktop) — se edita el video borrando palabras en la transcripción.', 'Subtítulos automáticos con IA: Whisper (OpenAI, open source) para transcripción y traducción sincronizada.', 'Limpieza de audio con IA: Adobe Podcast Enhance, Ultimate Vocal Remover (open source) para aislamiento de voz.', 'Video Vertical y Micro-content: adaptación ágil de un mismo video a 16:9 (YouTube/capacitaciones) y 9:16 (Shorts/Reels/LinkedIn).', 'Equipos: cámaras DSLR/mirrorless, micrófonos lavalier.'],
+                minero: ['Video con Drones (RPAS): captura y procesamiento de video aéreo para inspección técnica en zonas de difícil acceso (socavones, tajos abiertos, plantas procesadoras).', 'Capacitaciones y Transmisiones en Mina: streaming NDI/SRT hacia salas de control y campamentos remotos para webinars y capacitaciones operativas.'] } },
+            { title: 'Marketing Digital',
+              prerequisitos: 'Aplicaciones de Internet y nociones básicas de Animación y Diseño Gráfico Digital.',
+              prereqRefs: ['Animación y Diseño Gráfico Digital'],
+              capacidad: 'Diseñar estrategias de comercialización digital para posicionar marcas y productos en Internet.',
+              indicadores: ['Diseña campañas publicitarias en redes sociales y Google.', 'Analiza métricas web (tráfico, conversión, ROI).', 'Implementa automatización de marketing con IA y estrategias de captación B2B (ABM).'],
+              contenidos: ['SEO (Optimización en buscadores) y SEM.', 'Social Media Management y publicidad digital.', 'Análisis de métricas y analítica web.', 'Marketing con Inteligencia Artificial y automatización de contenido.', 'Growth Hacking y optimización de conversión (CRO).'],
+              tecnologias: { general: ['Google Ads, Google Analytics 4, Search Console.', 'Meta Business Suite (Facebook/Instagram Ads).', 'TikTok Ads, LinkedIn Ads: campañas B2B avanzadas segmentadas por cargo, sector industrial, tamaño de empresa e historial laboral.', 'SEMrush, Ahrefs, Ubersuggest.', 'SEO para IA / GEO (Generative Engine Optimization): posicionamiento en asistentes de IA (ChatGPT, SearchGPT, Perplexity, Claude) mediante datos estructurados y marcado de esquemas (Schema.org).', 'Video/Audio Generativo con IA: ElevenLabs (clonación de voz), HeyGen/Synthesia (avatares para video), Runway, Sora/Kling.', 'Asistentes de Copywriting e Investigación con IA: Copy.ai, Jasper, Perplexity.', 'Visuales y Creativos con IA: Midjourney, Adobe Firefly, Canva Magic Studio.', 'Dashboards y Visualización de ROI: Looker Studio, Power BI, Tableau integrados a APIs de marketing.', 'Tracking First-Party y Server-Side: Google Tag Manager (GTM) con Server-Side Tagging, Conversions API (CAPI) para Meta y LinkedIn Ads.', 'CDP (Customer Data Platforms): Segment.com, Tealium.', 'CRO y Experimentación: pruebas A/B con VWO, Optimizely.', 'Mapas de Calor y Grabación de Sesiones: Hotjar, Microsoft Clarity.', 'Landing Pages de Alta Conversión: Unbounce, Leadpages, Framer, Webflow.', 'WhatsApp API y Chatbots de Ventas: ManyChat, Trengo, Sirena/Zenvia, Gupshup — esencial en LATAM, con conversión final vía WhatsApp Business API enlazada a pasarelas como Yape, Plin y Culqi.', 'Email Marketing Pro y Marketing Automation: Mailchimp, ActiveCampaign, Klaviyo (B2C/e-Commerce), Brevo (Sendinblue).', 'Certificaciones: Google Ads Certification, Meta Blueprint.'],
+                minero: ['Marketing de Relaciones Comunitarias y Reputación (ESG): campañas digitales de responsabilidad social para mantener la licencia social para operar.', 'Employer Branding para Talento Técnico Escaso: estrategias en LinkedIn y portales especializados para atraer ingenieros de minas y operadores calificados.', 'Marketing B2B y ABM (Account-Based Marketing) para Proveedores Mineros: campañas dirigidas a cuentas clave (gerentes de mantenimiento, directores de TI de las mineras) con Demandbase, RollWorks y LinkedIn Sales Navigator.', 'Inbound Marketing y CRM para Ventas B2B Complejas: HubSpot CRM, Salesforce Pardot — automatización de lead nurturing y lead scoring en embudos de venta de largo aliento típicos de proveedores mineros (maquinaria, EPPs, software, consultoría).'] } },
+            { title: 'Negocios Electrónicos (e-Business)',
+              prerequisitos: 'Programación Web y Gestión y Administración Web.',
+              prereqRefs: ['Programación Web', 'Gestión y Administración Web'],
+              capacidad: 'Implementar plataformas de comercio electrónico e integrar pasarelas de pago online.',
+              indicadores: ['Implementa tiendas virtuales completamente funcionales.', 'Integra pasarelas de pago seguras y logística digital.', 'Implementa canales de venta móvil y comercio social (apps, wallets digitales, WhatsApp/redes sociales).'],
+              contenidos: ['Modelos de negocio e-Commerce (B2B, B2C, Dropshipping).', 'Plataformas e-Commerce (WooCommerce, Shopify).', 'Pasarelas de pago y seguridad transaccional.', 'Comercio móvil (m-Commerce) y comercio social (venta por apps, WhatsApp y redes sociales).'],
+              tecnologias: { general: ['Blogger (Google): herramienta de entrada para principiantes — publicar gratis y sin código una vitrina o landing de negocio (con botón de pago embebido de PayPal/Mercado Pago) antes de pasar a una plataforma e-commerce profesional.', 'WooCommerce (WordPress), Shopify, Magento, PrestaShop.', 'Django (con Django Oscar / Saleor para e-commerce).', 'Node.js (stack MERN) como alternativa backend.', 'Pasarelas de pago: Mercado Pago, Culqi, PayPal, Stripe.', 'Dropshipping: DSers, Spocket, AutoDS, CJdropshipping — automatizan la conexión con proveedores y el cumplimiento de pedidos sin manejo de inventario propio.', 'Print-on-Demand: Printful, Printify — integrables con Shopify/WooCommerce para productos personalizados sin stock.', 'Comercio Móvil (m-Commerce): Progressive Web Apps (PWA) para experiencias tipo app instalables, con soporte offline.', 'App builders no-code: Shopify (app "Shop"), Mobiloud/AppMySite para convertir tiendas WooCommerce/Shopify en apps nativas.', 'Billeteras digitales y pagos móviles: Apple Pay, Google Pay, Yape, Plin (muy usados en LATAM/Perú).', 'Pagos con código QR: estándar de pago móvil ampliamente adoptado en LATAM.', 'Comercio Social: WhatsApp Business API (catálogos y carritos), Instagram Shopping, TikTok Shop.', 'Marketplaces: integración con API de MercadoLibre, Amazon Seller API.', 'Chatbots de venta con IA (tendencia actual en e-commerce).', 'APIs REST y pruebas con Postman.'],
+                minero: ['Plataformas de e-Procurement B2B para Cadena de Suministro Minera: SAP Ariba, Coupa — gestión digital de proveedores, licitaciones y compras de repuestos e insumos críticos para la operación.', 'Marketplaces Especializados de Equipos y Repuestos Mineros: portales B2B de maquinaria pesada y repuestos (ej. plataformas de partes Caterpillar/Komatsu, marketplaces mineros regionales).', 'Trazabilidad Digital de la Cadena de Suministro: blockchain y sistemas de trazabilidad para cumplimiento ESG y de minerales responsables (Responsible Minerals Initiative).'] } },
+            { title: 'Gestión de Proyectos de TI',
+              prerequisitos: 'Haber cursado los Módulos I y II. Proyectos de Investigación e Innovación (metodología de proyectos).',
+              prereqRefs: ['Proyectos de Investigación e Innovación'],
+              capacidad: 'Planificar, ejecutar y monitorear proyectos informáticos utilizando metodologías tradicionales y ágiles.',
+              indicadores: ['Aplica Scrum/Kanban para la gestión de tareas de desarrollo.', 'Gestiona cronogramas, presupuestos y riesgos de TI.', 'Integra tableros de gestión con DevOps/GitOps y aplica análisis predictivo de riesgos.'],
+              contenidos: ['Metodologías de gestión (PMBOK / PMI).', 'Frameworks ágiles: Scrum y Kanban.', 'Herramientas de seguimiento (Jira/Trello/MS Project).', 'Gestión de proyectos con Inteligencia Artificial y marcos ágiles a escala (SAFe, LeSS, OKRs).'],
+              tecnologias: { general: ['Jira, Trello, Asana, ClickUp.', 'MS Project.', 'Plane: alternativa open source de rápido crecimiento a Jira/Linear — seguimiento de issues, sprints, ciclos y tableros Kanban/Scrum sin costo por asiento.', 'OpenProject: suite open source de gestión de proyectos y portafolios (PPM) más completa — Gantt interactivo, presupuesto, registro de horas, riesgos y tableros ágiles.', 'Taiga: gestión Scrum/Kanban pura, ligera, para equipos multidisciplinarios (epics, historias de usuario, issues).', 'Leantime: enfocado en metodología Lean, desde ideación (Lean Canvas, FODA) hasta ejecución.', 'Focalboard (Mattermost) / Wekan: reemplazos open source autoalojados de Trello/Notion Boards para tableros Kanban.', 'Documentación y colaboración: Confluence, Miro.', 'Metodologías: Scrum, Kanban, SAFe, LeSS (Large-Scale Scrum) y OKRs para alinear la estrategia corporativa con el trabajo operativo.', 'Gestión de Proyectos con IA (AI-Driven PM): Notion AI, ClickUp AI, Jira AI, ProjectLibre AI — redacción de criterios de aceptación, descomposición de tareas (WBS/EDT) y estimación de esfuerzo.', 'Análisis de Riesgos Predictivo: modelado de retrasos basado en la velocity histórica del equipo y detección de cuellos de botella.', 'DevOps y GitOps Integration: vinculación en tiempo real entre tableros y repositorios (GitHub, GitLab) — un ticket avanza automáticamente vía Pull Request o despliegue.', 'Certificaciones: Scrum Master (PSM I), PMP, CAPM.'],
+                minero: ['Gestión de Proyectos con Enfoque de Continuidad Operativa (24/7): en minería, una interrupción no planificada en el centro de datos o la red cuesta entre $100,000 y $1,000,000 de dólares por hora — combinar ITIL v4 con prácticas de DevOps Industrial es obligatorio.', 'Gestión de Mantenimiento TI y Continuidad ITSM: integración de proyectos de desarrollo e infraestructura con la mesa de ayuda (Service Desk), midiendo Tiempo Promedio de Reparación (MTTR) y Tiempo entre Fallas (MTBF).'] } }
+        ]
+    }
+];
+
+modules.forEach(m => { m.collapsed = false; m.children.forEach(c => c.expanded = false); });
+
+const DETAIL_KINDS = [
+    { key: 'prerequisitos', label: 'Pre-requisitos / Conocimientos Previos', type: 'text', icon: '&#128274; ' },
+    { key: 'capacidad', label: 'Capacidad Técnica / Específica', type: 'text' },
+    { key: 'indicadores', label: 'Indicadores de Logro', type: 'list' },
+    { key: 'contenidos', label: 'Contenidos', type: 'list' },
+    { key: 'tecnologias', label: 'Tecnologías / Herramientas del Mercado', type: 'list', icon: '&#128736;&#65039; ' }
+];
+
+const ROOT_X = 20, ROOT_W = 190, ROOT_H = 100;
+const MOD_X = 300, MOD_W = 300, MODULE_H = 56;
+const UD_X = 690, UD_W = 300, UD_H = 44;
+const DETAIL_X = UD_X + UD_W + 60, DETAIL_W = 360;
+const UD_GAP = 14, DETAIL_GAP = 10, MODULE_GAP = 34;
+
+const mapEl = document.getElementById('map');
+
+function hexToRgba(hex, alpha) {
+    const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+    return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function buildModuleNode(mod) {
+    const div = document.createElement('div');
+    div.className = 'node node-module';
+    div.style.borderLeft = `4px solid ${mod.color}`;
+    div.innerHTML = `
+        <span class="module-badge" style="background-color:${mod.color}">${mod.roman}</span>
+        <span>${mod.title} <span class="module-count">(${mod.children.length} UD)</span></span>
+        <span class="toggle-arrow ${mod.collapsed ? 'collapsed' : ''}">&#9660;</span>
+    `;
+    div.addEventListener('click', () => { mod.collapsed = !mod.collapsed; render(); });
+    return div;
+}
+
+function buildLeafNode(mod, child, isPrereq) {
+    const div = document.createElement('div');
+    div.className = 'node node-leaf' + (child.expanded ? ' expanded' : '') + (isPrereq ? ' prereq-highlight' : '');
+    div.style.setProperty('--leaf-accent', mod.color);
+    const tag = isPrereq ? '<span class="prereq-tag">Prerreq.</span>' : '';
+    div.innerHTML = `
+        <span class="leaf-dot" style="background-color:${mod.color}"></span>
+        <span>${child.title}</span>
+        ${tag}
+        <span class="toggle-arrow ${child.expanded ? '' : 'collapsed'}">&#9660;</span>
+    `;
+    div.addEventListener('click', () => { child.expanded = !child.expanded; render(); });
+    return div;
+}
+
+function buildDetailCard(mod, child, kindDef) {
+    const div = document.createElement('div');
+    div.className = 'node node-detail kind-' + kindDef.key;
+    div.style.setProperty('--accent', mod.color);
+    let contentHtml;
+    const value = child[kindDef.key];
+    if (kindDef.type === 'text') {
+        contentHtml = `<p>${value}</p>`;
+    } else if (!Array.isArray(value)) {
+        // Tecnologías con subgrupos: { general: [...], minero: [...] }
+        contentHtml = `
+            <div class="tech-subgroup general">
+                <div class="tech-subgroup-label">Mercado General</div>
+                <ul>${value.general.map(t => `<li>${t}</li>`).join('')}</ul>
+            </div>
+            <div class="tech-subgroup minero">
+                <div class="tech-subgroup-label">Sector Minero</div>
+                <ul>${value.minero.map(t => `<li>${t}</li>`).join('')}</ul>
+            </div>
+        `;
+    } else {
+        contentHtml = `<ul>${value.map(t => `<li>${t}</li>`).join('')}</ul>`;
+    }
+    const icon = kindDef.icon || '';
+    div.innerHTML = `<div class="detail-header">${icon}${kindDef.label}</div><div class="detail-content">${contentHtml}</div>`;
+    return div;
+}
+
+function render() {
+    mapEl.innerHTML = '';
+    const paths = [];
+
+    // Set of titles that should be highlighted as prerequisites of any currently expanded UD
+    const highlightTitles = new Set();
+    modules.forEach(mod => mod.children.forEach(c => {
+        if (c.expanded && c.prereqRefs) c.prereqRefs.forEach(t => highlightTitles.add(t));
+    }));
+
+    // Pass 1: create & measure detail cards for expanded UDs
+    const detailEls = {}; // key `${mi}-${ci}-${kind}` -> {el, h}
+    modules.forEach((mod, mi) => {
+        mod.children.forEach((child, ci) => {
+            if (!child.expanded) return;
+            DETAIL_KINDS.forEach(kd => {
+                const el = buildDetailCard(mod, child, kd);
+                el.style.left = DETAIL_X + 'px';
+                el.style.top = '0px';
+                el.style.width = DETAIL_W + 'px';
+                mapEl.appendChild(el);
+                const h = el.offsetHeight;
+                detailEls[`${mi}-${ci}-${kd.key}`] = { el, h };
+            });
+        });
+    });
+
+    // Pass 2: compute vertical layout top-down
+    let y = 30;
+    const moduleCenters = [];
+
+    modules.forEach((mod, mi) => {
+        const groupStart = y;
+        const leafCenters = [];
+        const pendingModPaths = [];
+
+        if (!mod.collapsed) {
+            mod.children.forEach((child, ci) => {
+                const udTop = y;
+                let udCenter;
+
+                if (child.expanded) {
+                    let dy = udTop;
+                    const detailCenters = [];
+                    DETAIL_KINDS.forEach(kd => {
+                        const rec = detailEls[`${mi}-${ci}-${kd.key}`];
+                        rec.el.style.top = dy + 'px';
+                        detailCenters.push(dy + rec.h / 2);
+                        dy += rec.h + DETAIL_GAP;
+                    });
+                    const blockBottom = dy - DETAIL_GAP;
+                    udCenter = (detailCenters[0] + detailCenters[detailCenters.length - 1]) / 2;
+                    y = Math.max(blockBottom, udTop + UD_H);
+
+                    DETAIL_KINDS.forEach((kd, idx) => {
+                        paths.push({ x1: UD_X + UD_W, y1: udCenter, x2: DETAIL_X, y2: detailCenters[idx], color: mod.color, dim: true });
+                    });
+                } else {
+                    udCenter = udTop + UD_H / 2;
+                    y = udTop + UD_H;
+                }
+
+                const isPrereq = highlightTitles.has(child.title);
+                const udEl = buildLeafNode(mod, child, isPrereq);
+                udEl.style.left = UD_X + 'px';
+                udEl.style.top = (udCenter - UD_H / 2) + 'px';
+                udEl.style.width = UD_W + 'px';
+                mapEl.appendChild(udEl);
+
+                leafCenters.push(udCenter);
+                pendingModPaths.push({ x2: UD_X, y2: udCenter });
+
+                y += UD_GAP;
+            });
+        } else {
+            y = groupStart + MODULE_H;
+        }
+
+        const modCenter = leafCenters.length ? (leafCenters[0] + leafCenters[leafCenters.length - 1]) / 2 : (groupStart + MODULE_H / 2);
+        moduleCenters.push(modCenter);
+
+        pendingModPaths.forEach(p => paths.push({ x1: MOD_X + MOD_W, y1: modCenter, x2: p.x2, y2: p.y2, color: mod.color, dim: true }));
+
+        const modEl = buildModuleNode(mod);
+        modEl.style.left = MOD_X + 'px';
+        modEl.style.top = (modCenter - MODULE_H / 2) + 'px';
+        modEl.style.width = MOD_W + 'px';
+        mapEl.appendChild(modEl);
+
+        y += MODULE_GAP;
+    });
+
+    const totalH = Math.max(y, 200);
+    const totalW = DETAIL_X + DETAIL_W + 40;
+    const rootCenter = (moduleCenters[0] + moduleCenters[moduleCenters.length - 1]) / 2;
+
+    const rootEl = document.createElement('div');
+    rootEl.className = 'node node-root';
+    rootEl.textContent = 'Arquitectura de Plataformas y Servicios de TI';
+    rootEl.style.left = ROOT_X + 'px';
+    rootEl.style.top = (rootCenter - ROOT_H / 2) + 'px';
+    rootEl.style.width = ROOT_W + 'px';
+    rootEl.style.height = ROOT_H + 'px';
+    mapEl.appendChild(rootEl);
+
+    moduleCenters.forEach((mc, i) => paths.push({ x1: ROOT_X + ROOT_W, y1: rootCenter, x2: MOD_X, y2: mc, color: modules[i].color, dim: false }));
+
+    mapEl.style.height = totalH + 'px';
+    mapEl.style.width = totalW + 'px';
+
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('width', totalW);
+    svg.setAttribute('height', totalH);
+    paths.forEach(p => {
+        const dx = (p.x2 - p.x1) * 0.5;
+        const path = document.createElementNS(svgNS, 'path');
+        path.setAttribute('d', `M ${p.x1} ${p.y1} C ${p.x1+dx} ${p.y1}, ${p.x2-dx} ${p.y2}, ${p.x2} ${p.y2}`);
+        path.setAttribute('stroke', hexToRgba(p.color, p.dim ? 0.45 : 0.9));
+        path.setAttribute('stroke-width', p.dim ? 1.5 : 2.5);
+        path.setAttribute('fill', 'none');
+        svg.appendChild(path);
+    });
+    mapEl.insertBefore(svg, mapEl.firstChild);
+}
+
+document.getElementById('expandAllBtn').addEventListener('click', () => {
+    modules.forEach(m => { m.collapsed = false; m.children.forEach(c => c.expanded = true); });
+    render();
+});
+document.getElementById('collapseAllBtn').addEventListener('click', () => {
+    modules.forEach(m => { m.children.forEach(c => c.expanded = false); });
+    render();
+});
+
+// --- Exportación a PNG / PDF ---
+const exportBtn = document.getElementById('exportBtn');
+const exportMenu = document.getElementById('exportMenu');
+const exportPngBtn = document.getElementById('exportPngBtn');
+const exportPdfBtn = document.getElementById('exportPdfBtn');
+
+exportBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    exportMenu.classList.toggle('open');
+});
+document.addEventListener('click', (e) => {
+    if (exportMenu.classList.contains('open') && !exportMenu.contains(e.target) && e.target !== exportBtn) {
+        exportMenu.classList.remove('open');
+    }
+});
+
+function setExportBusy(busy) {
+    exportPngBtn.disabled = busy;
+    exportPdfBtn.disabled = busy;
+    exportPngBtn.textContent = busy ? 'Generando…' : 'Descargar PNG';
+    exportPdfBtn.textContent = busy ? 'Generando…' : 'Descargar PDF';
+}
+
+// Límites seguros de tamaño de canvas entre navegadores (evita imágenes en blanco/corruptas
+// cuando el mapa está muy expandido y el canvas resultante excede el máximo soportado).
+const EXPORT_MAX_DIM = 14000;
+const EXPORT_MAX_AREA = 200000000;
+
+function computeExportScale(width, height) {
+    let scale = 2;
+    scale = Math.min(scale, EXPORT_MAX_DIM / width, EXPORT_MAX_DIM / height);
+    scale = Math.min(scale, Math.sqrt(EXPORT_MAX_AREA / (width * height)));
+    return Math.max(scale, 0.15);
+}
+
+async function captureMapCanvas() {
+    const width = mapEl.offsetWidth;
+    const height = mapEl.offsetHeight;
+    const scale = computeExportScale(width, height);
+    const canvas = await html2canvas(mapEl, {
+        backgroundColor: '#0f172a',
+        scale: scale,
+        useCORS: true,
+        logging: false
+    });
+    const dataUrl = canvas.toDataURL('image/png');
+    if (!dataUrl || dataUrl === 'data:,') {
+        throw new Error('El mapa es demasiado grande para exportar en un solo archivo. Colapsa algunas ramas y vuelve a intentar.');
+    }
+    return { canvas, dataUrl, scaleUsed: scale };
+}
+
+function warnIfScaledDown(scaleUsed) {
+    if (scaleUsed < 1.5) {
+        alert('El mapa expandido es muy grande: la calidad de exportación se redujo automáticamente para que el archivo se genere correctamente. Para máxima nitidez, exporta con menos ramas expandidas a la vez.');
+    }
+}
+
+exportPngBtn.addEventListener('click', async () => {
+    exportMenu.classList.remove('open');
+    setExportBusy(true);
+    try {
+        const { canvas, dataUrl, scaleUsed } = await captureMapCanvas();
+        const link = document.createElement('a');
+        link.download = 'mapa-mental-arquitectura-ti.png';
+        link.href = dataUrl;
+        link.click();
+        warnIfScaledDown(scaleUsed);
+    } catch (err) {
+        alert('No se pudo generar el PNG: ' + err.message);
+    } finally {
+        setExportBusy(false);
+    }
+});
+
+exportPdfBtn.addEventListener('click', async () => {
+    exportMenu.classList.remove('open');
+    setExportBusy(true);
+    try {
+        const { dataUrl, scaleUsed } = await captureMapCanvas();
+        const cssWidth = mapEl.offsetWidth;
+        const cssHeight = mapEl.offsetHeight;
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({
+            orientation: cssWidth >= cssHeight ? 'landscape' : 'portrait',
+            unit: 'px',
+            format: [cssWidth, cssHeight]
+        });
+        pdf.addImage(dataUrl, 'PNG', 0, 0, cssWidth, cssHeight);
+        pdf.save('mapa-mental-arquitectura-ti.pdf');
+        warnIfScaledDown(scaleUsed);
+    } catch (err) {
+        alert('No se pudo generar el PDF: ' + err.message);
+    } finally {
+        setExportBusy(false);
+    }
+});
+
+render();
+</script>
+
+</body>
+</html>
